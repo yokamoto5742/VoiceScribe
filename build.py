@@ -8,7 +8,7 @@ def build_executable():
 
     subprocess.run([
         "pyinstaller",
-        "--name=GroqWhisper",
+        "--name=VoiceScribe",
         "--windowed",
         "--icon=assets/VoiceScribe.ico",
         "--add-data", ".env:.",

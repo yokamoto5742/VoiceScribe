@@ -7,10 +7,10 @@ from tkinter import messagebox
 
 from app import __version__
 from app.main_window import VoiceInputManager
-from external_service.groq_api import setup_groq_client
+from external_service.elevenlabs_api import setup_elevenlabs_client
 from service.audio_recorder import AudioRecorder
 from service.text_processing import initialize_text_processing, load_replacements
-from utils.config_manager import load_config
+from utils.config_manager import get_config_value, load_config
 from utils.log_rotation import setup_logging, setup_debug_logging
 
 
@@ -33,7 +33,11 @@ def main():
         initialize_text_processing()
 
         recorder = AudioRecorder(config)
-        client = setup_groq_client()
+
+        api_provider = get_config_value(config, 'API', 'provider', 'VoiceScribe').lower()
+        client = setup_elevenlabs_client()
+        logging.info("ElevenLabs APIクライアントを初期化しました")
+
         replacements = load_replacements()
         root = tk.Tk()
         app = VoiceInputManager(root, config, recorder, client, replacements, __version__)
@@ -69,7 +73,7 @@ def main():
 
         try:
             detailed_error = f"""
-=== GroqWhisper エラーレポート ===
+=== VoiceScribe エラーレポート ===
 発生日時: {logging.Formatter().formatTime(logging.LogRecord('', 0, '', 0, '', (), None))}
 バージョン: {__version__}
 エラータイプ: {type(e).__name__}

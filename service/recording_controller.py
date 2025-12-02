@@ -9,7 +9,7 @@ import tkinter as tk
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Optional
 
-from external_service.groq_api import transcribe_audio
+from external_service.elevenlabs_api import transcribe_audio
 from service.audio_recorder import save_audio
 from service.text_processing import copy_and_paste_transcription, process_punctuation
 from utils.config_manager import get_config_value
@@ -42,6 +42,9 @@ class RecordingController:
         self.processing_thread: Optional[threading.Thread] = None
 
         self.use_punctuation: bool = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
+
+        api_provider = get_config_value(config, 'API', 'provider', 'VoiceScribe').lower()
+        self.transcribe_audio_func = transcribe_audio
 
         self.temp_dir = config['PATHS']['TEMP_DIR']
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
@@ -267,7 +270,7 @@ class RecordingController:
 
             self.ui_callbacks['update_status_label']('音声ファイル処理中...')
 
-            transcription = transcribe_audio(
+            transcription = self.transcribe_audio_func(
                 file_path,
                 self.config,
                 self.client
@@ -302,7 +305,7 @@ class RecordingController:
                 return
 
             logging.info("文字起こし開始")
-            transcription = transcribe_audio(
+            transcription = self.transcribe_audio_func(
                 temp_audio_file,
                 self.config,
                 self.client

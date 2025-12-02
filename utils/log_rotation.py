@@ -14,7 +14,7 @@ def setup_logging(config=None):
     try:
         log_directory = get_config_value(config, 'LOGGING', 'log_directory', 'logs')
         log_retention_days = get_config_value(config, 'LOGGING', 'log_retention_days', 7)
-        project_name = get_config_value(config, 'LOGGING', 'project_name', 'groqwhisper')
+        project_name = get_config_value(config, 'LOGGING', 'project_name', 'VoiceScribe')
         log_level = get_config_value(config, 'LOGGING', 'log_level', 'INFO')
 
         if not os.path.isabs(log_directory):
@@ -68,7 +68,6 @@ def cleanup_old_logs(log_directory: str, retention_days: int, project_name: str)
         now = datetime.now()
         main_log_file = f'{project_name}.log'
 
-        # ローテートされたログファイルのパターン（例: groqwhisper.log.2024-01-01.log）
         rotated_log_pattern = rf'{re.escape(project_name)}\.log\.\d{{4}}-\d{{2}}-\d{{2}}\.log$'
 
         deleted_count = 0
@@ -138,7 +137,7 @@ def get_log_info(config=None):
             project_root = os.path.dirname(os.path.dirname(__file__))
             log_directory = os.path.join(project_root, log_directory)
 
-        project_name = get_config_value(config, 'LOGGING', 'project_name', 'groqwhisper')
+        project_name = get_config_value(config, 'LOGGING', 'project_name', 'VoiceScribe')
         log_retention_days = get_config_value(config, 'LOGGING', 'log_retention_days', 7)
         debug_mode = get_config_value(config, 'LOGGING', 'debug_mode', False)
 

@@ -30,7 +30,7 @@ class UIComponents:
         self.close_button: Optional[tk.Button] = None
 
     def setup_ui(self, version: str):
-        self.master.title(f'GroqWhisper v{version}')
+        self.master.title(f'VoiceScribe v{version}')
 
         window_width = int(self.config['WINDOW'].get('width', 350))
         window_height = int(self.config['WINDOW'].get('height', 400))

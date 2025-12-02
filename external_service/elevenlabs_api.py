@@ -4,17 +4,17 @@ import os
 import traceback
 from typing import Optional
 
-from groq import Groq
+from elevenlabs.client import ElevenLabs
 
 from utils.env_loader import load_env_variables
 
 
-def setup_groq_client() -> Groq:
+def setup_elevenlabs_client() -> ElevenLabs:
     env_vars = load_env_variables()
-    api_key = env_vars.get("GROQ_API_KEY")
+    api_key = env_vars.get("ELEVENLABS_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEYが未設定です")
-    return Groq(api_key=api_key)
+        raise ValueError("ELEVENLABS_API_KEYが未設定です")
+    return ElevenLabs(api_key=api_key)
 
 
 def validate_audio_file(file_path: str) -> tuple[bool, Optional[str]]:
@@ -61,7 +61,7 @@ def convert_response_to_text(response) -> Optional[str]:
 def transcribe_audio(
         audio_file_path: str,
         config: configparser.ConfigParser,
-        client: Groq
+        client: ElevenLabs
 ) -> Optional[str]:
     is_valid, error_msg = validate_audio_file(audio_file_path)
     if not is_valid:
@@ -74,12 +74,10 @@ def transcribe_audio(
             file_content = file.read()
             logging.info(f"ファイル読み込み完了: {len(file_content)} bytes")
 
-            transcription = client.audio.transcriptions.create(
+            transcription = client.speech_to_text.convert(
                 file=(os.path.basename(audio_file_path), file_content),
-                model=config['WHISPER']['MODEL'],
-                prompt=config['WHISPER']['PROMPT'],
-                response_format="text",
-                language=config['WHISPER']['LANGUAGE']
+                model_id=config['ELEVENLABS']['MODEL'],
+                language_code=config['ELEVENLABS']['LANGUAGE']
             )
 
         text_result = convert_response_to_text(transcription)
