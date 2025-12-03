@@ -10,7 +10,7 @@ from app.main_window import VoiceInputManager
 from external_service.elevenlabs_api import setup_elevenlabs_client
 from service.audio_recorder import AudioRecorder
 from service.text_processing import initialize_text_processing, load_replacements
-from utils.config_manager import get_config_value, load_config
+from utils.config_manager import load_config
 from utils.log_rotation import setup_logging, setup_debug_logging
 
 
@@ -34,7 +34,6 @@ def main():
 
         recorder = AudioRecorder(config)
 
-        api_provider = get_config_value(config, 'API', 'provider', 'VoiceScribe').lower()
         client = setup_elevenlabs_client()
         logging.info("ElevenLabs APIクライアントを初期化しました")
 

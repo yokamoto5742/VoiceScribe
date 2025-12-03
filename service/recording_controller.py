@@ -43,7 +43,6 @@ class RecordingController:
 
         self.use_punctuation: bool = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
 
-        api_provider = get_config_value(config, 'API', 'provider', 'VoiceScribe').lower()
         self.transcribe_audio_func = transcribe_audio
 
         self.temp_dir = config['PATHS']['TEMP_DIR']
@@ -182,7 +181,10 @@ class RecordingController:
             self.recorder.record()
         except Exception as e:
             logging.error(f"録音中にエラーが発生しました: {str(e)}")
-            self._schedule_ui_callback(self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
+            try:
+                self.master.after(0, self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
+            except Exception:
+                pass
 
     def stop_recording(self):
         try:
@@ -323,14 +325,20 @@ class RecordingController:
                 return
 
             logging.debug("UI更新をスケジュール")
-            self._schedule_ui_callback(self._safe_ui_update, transcription)
+            try:
+                self.master.after(0, self._safe_ui_update, transcription)
+            except Exception:
+                pass
             logging.debug("UI更新スケジュール完了")
 
         except Exception as e:
             logging.error(f"文字起こし処理中にエラー: {str(e)}")
             import traceback
             logging.debug(f"詳細: {traceback.format_exc()}")
-            self._schedule_ui_callback(self._safe_error_handler, str(e))
+            try:
+                self.master.after(0, self._safe_error_handler, str(e))
+            except Exception:
+                pass
 
     def _safe_ui_update(self, text: str):
         try:

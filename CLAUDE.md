@@ -119,7 +119,6 @@ python main.py
 
 ### Configuration File (utils/config.ini)
 Key settings for development:
-- `[API]`: provider selection (elevenlabs)
 - `[ELEVENLABS]`: Model selection (scribe_v2 default), language (jpn)
 - `[AUDIO]`: Audio settings (sample_rate=16000, channels=1, chunk=1024)
 - `[KEYS]`: Keyboard shortcuts (pause=toggle_recording, esc=exit, f8=reload, f9=toggle_punctuation)
