@@ -115,29 +115,44 @@ def copy_and_paste_transcription(
         return
 
     try:
+        logging.debug("copy_and_paste_transcription開始")
+
         replaced_text = replace_text(text, replacements)
         if not replaced_text:
             logging.error("テキスト置換結果が空です")
             return
 
+        logging.debug("クリップボードへコピー開始")
         if not safe_clipboard_copy(replaced_text):
             raise Exception("クリップボードへのコピーに失敗しました")
+        logging.debug("クリップボードへコピー完了")
 
         paste_delay = get_config_value(config, 'CLIPBOARD', 'paste_delay', 0.2)
 
         def delayed_paste():
             try:
+                logging.debug(f"delayed_paste開始: delay={paste_delay}秒")
                 time.sleep(paste_delay)
+                logging.debug("貼り付け実行開始")
+
                 if not safe_paste_text():
                     logging.error("貼り付け実行に失敗しました")
-            except Exception as paste_error:
-                logging.error(f"遅延ペースト中にエラー: {str(paste_error)}", exc_info=True)
+                else:
+                    logging.debug("貼り付け実行成功")
 
-        paste_thread = threading.Thread(target=delayed_paste, daemon=True)
+            except Exception as paste_error:
+                logging.error(f"遅延ペースト中にエラー: {type(paste_error).__name__}: {str(paste_error)}")
+                import traceback
+                logging.debug(f"詳細: {traceback.format_exc()}")
+
+        paste_thread = threading.Thread(target=delayed_paste, daemon=True, name="DelayedPasteThread")
         paste_thread.start()
+        logging.debug("DelayedPasteThreadを開始")
 
     except Exception as e:
-        logging.error(f"コピー&ペースト処理でエラー: {str(e)}", exc_info=True)
+        logging.error(f"コピー&ペースト処理でエラー: {type(e).__name__}: {str(e)}")
+        import traceback
+        logging.debug(f"詳細: {traceback.format_exc()}")
         raise
 
 

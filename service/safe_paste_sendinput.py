@@ -1,5 +1,6 @@
 import logging
 import time
+import traceback
 
 import keyboard
 import pyperclip
@@ -12,7 +13,7 @@ def safe_clipboard_copy(text: str) -> bool:
     if not text:
         return False
 
-    max_retries = 2
+    max_retries = 3
     for attempt in range(max_retries):
         try:
             pyperclip.copy(text)
@@ -25,6 +26,7 @@ def safe_clipboard_copy(text: str) -> bool:
                 logger.warning(f"クリップボードコピー検証失敗 (試行 {attempt + 1}/{max_retries})")
         except Exception as e:
             logger.error(f"クリップボードコピー中にエラー (試行 {attempt + 1}/{max_retries}): {str(e)}")
+            logger.debug(f"詳細: {traceback.format_exc()}")
 
         if attempt < max_retries - 1:
             time.sleep(0.1 * (attempt + 1))
@@ -36,16 +38,35 @@ def safe_clipboard_copy(text: str) -> bool:
 def safe_paste_text() -> bool:
     """クリップボードの内容を貼り付け"""
     try:
+        logger.debug("safe_paste_text開始")
+
         current_text = pyperclip.paste()
         if not current_text:
             logger.warning("クリップボードが空です")
             return False
 
+        # keyboard操作前に少し待機（フォーカス安定化）
+        time.sleep(0.05)
+
+        logger.debug("keyboard.send('ctrl+v')実行前")
         keyboard.send('ctrl+v')
+        logger.debug("keyboard.send('ctrl+v')実行後")
+
         time.sleep(0.1)
+        logger.debug("safe_paste_text完了")
         return True
+
+    except AttributeError as e:
+        logger.error(f"keyboard属性エラー: {e}")
+        logger.debug(f"詳細: {traceback.format_exc()}")
+        return False
+    except OSError as e:
+        logger.error(f"OSエラー（キーボード操作失敗）: {e}")
+        logger.debug(f"詳細: {traceback.format_exc()}")
+        return False
     except Exception as e:
-        logger.error(f"貼り付け操作に失敗: {e}")
+        logger.error(f"貼り付け操作に失敗: {type(e).__name__}: {e}")
+        logger.debug(f"詳細: {traceback.format_exc()}")
         return False
 
 

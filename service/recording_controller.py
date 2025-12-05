@@ -374,26 +374,64 @@ class RecordingController:
             logging.debug(f"詳細: {traceback.format_exc()}")
 
     def copy_and_paste(self, text: str):
+        """UI スレッドから呼び出される。新しいスレッドで貼り付け処理を実行"""
         try:
             logging.debug(f"copy_and_paste開始: text長={len(text)}")
-            threading.Thread(
+
+            # シャットダウン中なら処理しない
+            if self._is_shutting_down:
+                logging.info("シャットダウン中のためcopy_and_pasteをスキップ")
+                return
+
+            # UI有効性を再確認
+            if not self._is_ui_valid():
+                logging.warning("UIが無効なためcopy_and_pasteをスキップ")
+                return
+
+            thread = threading.Thread(
                 target=self._safe_copy_and_paste,
                 args=(text,),
-                daemon=True
-            ).start()
+                daemon=True,
+                name="CopyPasteThread"
+            )
+            thread.start()
+            logging.debug("CopyPasteThreadを開始しました")
+
+        except RuntimeError as e:
+            logging.error(f"スレッド作成中にRuntimeError: {str(e)}")
         except Exception as e:
             logging.error(f"コピー&ペースト開始中にエラー: {str(e)}")
-
-    def _safe_copy_and_paste(self, text: str):
-        try:
-            logging.debug("_safe_copy_and_paste開始")
-            copy_and_paste_transcription(text, self.replacements, self.config)
-            logging.debug("_safe_copy_and_paste完了")
-        except Exception as e:
-            logging.error(f"コピー&ペースト実行中にエラー: {str(e)}")
             import traceback
             logging.debug(f"詳細: {traceback.format_exc()}")
-            self._schedule_ui_callback(self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
+
+    def _safe_copy_and_paste(self, text: str):
+        """バックグラウンドスレッドで実行される貼り付け処理"""
+        try:
+            logging.debug("_safe_copy_and_paste開始")
+
+            # シャットダウンチェック
+            if self._is_shutting_down:
+                logging.info("シャットダウン中のため_safe_copy_and_pasteを中断")
+                return
+
+            copy_and_paste_transcription(text, self.replacements, self.config)
+            logging.debug("_safe_copy_and_paste完了")
+
+        except RuntimeError as e:
+            logging.error(f"_safe_copy_and_paste RuntimeError: {str(e)}")
+            import traceback
+            logging.debug(f"詳細: {traceback.format_exc()}")
+        except OSError as e:
+            logging.error(f"_safe_copy_and_paste OSError: {str(e)}")
+            import traceback
+            logging.debug(f"詳細: {traceback.format_exc()}")
+        except Exception as e:
+            logging.error(f"コピー&ペースト実行中にエラー: {type(e).__name__}: {str(e)}")
+            import traceback
+            logging.debug(f"詳細: {traceback.format_exc()}")
+            # UIコールバックは安全にスケジュール
+            if not self._is_shutting_down:
+                self._schedule_ui_callback(self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
 
     def cleanup(self):
         try:
