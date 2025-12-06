@@ -53,7 +53,7 @@ class TestReplacementsEditorInit:
 
         # Assert
         mock_toplevel.assert_called_once_with(self.mock_parent)
-        mock_window.title.assert_called_once_with('テキスト置換登録( 置換前 , 置換後 )')
+        mock_window.title.assert_called_once_with('置換単語登録( 置換前 , 置換後 )')
         mock_window.geometry.assert_called_once_with('500x800')
         mock_load_file.assert_called_once()
         mock_window.transient.assert_called_once_with(self.mock_parent)

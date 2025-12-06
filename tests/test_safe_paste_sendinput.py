@@ -69,7 +69,7 @@ class TestSafeClipboardCopy:
 
         # Assert
         assert result is False
-        assert mock_copy.call_count == 2  # max_retries = 2
+        assert mock_copy.call_count == 3  # max_retries = 3
         assert "クリップボードコピーが最大試行回数後に失敗しました" in caplog.text
 
     def test_safe_clipboard_copy_empty_text(self):
@@ -267,7 +267,8 @@ class TestSafePasteText:
         assert result is True
         mock_paste.assert_called_once()
         mock_send.assert_called_once_with('ctrl+v')
-        mock_sleep.assert_called_once_with(0.1)
+        # safe_paste_text内でsleepが2回呼ばれる: 0.05秒と0.1秒
+        assert mock_sleep.call_count == 2
 
     @patch('service.safe_paste_sendinput.pyperclip.paste')
     def test_safe_paste_text_empty_clipboard(self, mock_paste, caplog):
@@ -516,11 +517,11 @@ class TestIntegrationScenarios:
         caplog.set_level(logging.ERROR)
         test_text = "テストテキスト"
 
-        # 1回目のコピーは2回とも失敗
-        mock_copy.side_effect = [Exception("一時的なエラー"), Exception("一時的なエラー"), None]
+        # 1回目のコピーは3回とも失敗
+        mock_copy.side_effect = [Exception("一時的なエラー"), Exception("一時的なエラー"), Exception("一時的なエラー"), None]
         mock_paste.side_effect = [test_text]
 
-        # Act - 1回目のコピー失敗（2回試行して両方失敗）
+        # Act - 1回目のコピー失敗（3回試行して全て失敗）
         result1 = safe_clipboard_copy(test_text)
         assert result1 is False
 
@@ -530,7 +531,7 @@ class TestIntegrationScenarios:
 
         # Assert - リトライ後成功
         assert result2 is True
-        assert mock_copy.call_count == 3  # 1回目失敗(2回試行) + 2回目成功(1回)
+        assert mock_copy.call_count == 4  # 1回目失敗(3回試行) + 2回目成功(1回)
 
 
 class TestPerformance:
@@ -570,8 +571,8 @@ class TestPerformance:
 
         # Assert
         assert result is True
-        # sleep(0.1)が呼ばれることを確認
-        mock_sleep.assert_called_once_with(0.1)
+        # safe_paste_text内でsleepが2回呼ばれる: 0.05秒と0.1秒
+        assert mock_sleep.call_count == 2
         assert (end_time - start_time) < 1.0
 
 

@@ -121,7 +121,7 @@ class TestShowTimedMessage:
     @patch('service.notification.tk.Toplevel')
     @patch('service.notification.tk.Label')
     def test_show_timed_message_default_duration(self, mock_label_class, mock_toplevel_class):
-        """正常系: デフォルト表示時間（3秒）"""
+        """正常系: デフォルト表示時間（2秒）"""
         # Arrange
         mock_popup = Mock()
         mock_toplevel_class.return_value = mock_popup
@@ -132,7 +132,7 @@ class TestShowTimedMessage:
         self.manager.show_timed_message("タイトル", "メッセージ")
 
         # Assert
-        mock_popup.after.assert_called_once_with(3000, self.manager._destroy_popup)
+        mock_popup.after.assert_called_once_with(2000, self.manager._destroy_popup)
 
     @patch('service.notification.tk.Toplevel')
     @patch('service.notification.tk.Label')

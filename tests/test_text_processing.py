@@ -552,7 +552,7 @@ class TestCopyAndPasteTranscription:
         """各テストメソッドの前に実行される設定"""
         self.mock_config = {
             'CLIPBOARD': {
-                'PASTE_DELAY': 0.1
+                'paste_delay': 0.1
             }
         }
         self.mock_replacements = {
@@ -653,7 +653,7 @@ class TestCopyAndPasteTranscription:
         # Arrange
         text = "テストテキスト"
         replaced_text = "試験テキスト"
-        
+
         mock_replace.return_value = replaced_text
         mock_copy.return_value = True
         mock_paste.return_value = True
@@ -665,14 +665,15 @@ class TestCopyAndPasteTranscription:
                 target()
                 thread_mock = Mock()
                 return thread_mock
-            
+
             mock_thread.side_effect = immediate_execute
 
             # Act
             copy_and_paste_transcription(text, self.mock_replacements, self.mock_config)
 
             # Assert
-            mock_sleep.assert_called_once_with(0.2)
+            # paste_delayはデフォルト0.3秒だが、mock_configでは0.1秒に設定されている
+            mock_sleep.assert_called_once_with(0.1)
             mock_paste.assert_called_once()
 
     @patch('service.text_processing.replace_text')
@@ -822,7 +823,7 @@ class TestIntegrationScenarios:
         }
         config = {
             'CLIPBOARD': {
-                'PASTE_DELAY': 0.05
+                'paste_delay': 0.05
             }
         }
 
@@ -934,7 +935,7 @@ class TestThreadingSafety:
     def test_concurrent_copy_paste_operations(self, mock_thread):
         """並行コピー&ペースト操作のテスト"""
         # Arrange
-        config = {'CLIPBOARD': {'PASTE_DELAY': 0.01}}
+        config = {'CLIPBOARD': {'paste_delay': 0.01}}
         replacements = {"テスト": "試験"}
         
         # スレッドの動作をシミュレート
