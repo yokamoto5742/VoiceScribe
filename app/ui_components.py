@@ -32,8 +32,8 @@ class UIComponents:
     def setup_ui(self, version: str):
         self.master.title(f'VoiceScribe v{version}')
 
-        window_width = int(self.config['WINDOW'].get('width', 350))
-        window_height = int(self.config['WINDOW'].get('height', 400))
+        window_width = int(self.config['WINDOW'].get('width', 300))
+        window_height = int(self.config['WINDOW'].get('height', 350))
         self.master.geometry(f"{window_width}x{window_height}")
 
         self.record_button = tk.Button(
