@@ -1,6 +1,6 @@
 プロジェクト構造: VoiceScribe
 パス: C:\Users\yokam\PycharmProjects\VoiceScribe
-生成日時: 2025-12-06 15:21:17
+生成日時: 2025-12-07 07:19:33
 ============================================================
 
 └── VoiceScribe
@@ -10,7 +10,6 @@
     │   └── ui_components.py
     ├── docs
     │   ├── README.md
-    │   ├── CHANGELOG.md
     │   └── LICENSE
     ├── external_service
     │   ├── __init__.py
@@ -27,10 +26,13 @@
     │   ├── keyboard_handler.py
     │   ├── notification.py
     │   ├── recording_controller.py
+    │   ├── recording_timer.py
     │   ├── replacements.txt
     │   ├── replacements_editor.py
     │   ├── safe_paste_sendinput.py
-    │   └── text_processing.py
+    │   ├── text_processing.py
+    │   ├── transcription_handler.py
+    │   └── ui_queue_processor.py
     ├── utils
     │   ├── config.ini
     │   ├── config_manager.py
