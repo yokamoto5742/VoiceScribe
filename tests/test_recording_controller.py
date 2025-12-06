@@ -1,7 +1,7 @@
 import time
 import tkinter as tk
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, call, MagicMock
+from unittest.mock import Mock, patch, call
 
 import pytest
 

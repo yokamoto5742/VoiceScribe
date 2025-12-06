@@ -6,7 +6,7 @@ import threading
 import time
 import tkinter as tk
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
 from service.recording_timer import RecordingTimer
 from service.transcription_handler import TranscriptionHandler
@@ -260,40 +260,3 @@ class RecordingController:
 
         except Exception as e:
             logging.error(f"クリーンアップ処理中にエラーが発生しました: {str(e)}")
-
-    # 後方互換性のためのプロパティ
-    @property
-    def use_punctuation(self) -> bool:
-        return self.transcription_handler.use_punctuation
-
-    @use_punctuation.setter
-    def use_punctuation(self, value: bool):
-        self.transcription_handler.use_punctuation = value
-
-    @property
-    def cancel_processing(self) -> bool:
-        return self.transcription_handler.cancel_processing
-
-    @cancel_processing.setter
-    def cancel_processing(self, value: bool):
-        if value:
-            self.transcription_handler.cancel()
-        else:
-            self.transcription_handler.reset_cancel()
-
-    @property
-    def processing_thread(self) -> Optional[threading.Thread]:
-        return self.transcription_handler.processing_thread
-
-    @processing_thread.setter
-    def processing_thread(self, value: Optional[threading.Thread]):
-        self.transcription_handler.processing_thread = value
-
-    # 後方互換性のためのメソッド
-    def _schedule_ui_callback(self, callback: Callable, *args):
-        """スレッドセーフにUIコールバックをスケジュール（後方互換性）"""
-        self.ui_processor.schedule_callback(callback, *args)
-
-    def _is_ui_valid(self) -> bool:
-        """UIが有効かどうかを確認（後方互換性）"""
-        return self.ui_processor.is_ui_valid()

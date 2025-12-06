@@ -1,9 +1,6 @@
-import configparser
 import logging
 import tkinter as tk
 from unittest.mock import Mock, patch
-
-import pytest
 
 from service.notification import NotificationManager
 
@@ -514,7 +511,7 @@ class TestIntegrationScenarios:
         manager.show_timed_message("通知1", "メッセージ1", 1000)
         assert manager.current_popup == popup1
 
-        manager.show_timed_message("通知2", "メッセージ2", 2000)
+        manager.show_timed_message("通知2", "メッセージ2")
         popup1.destroy.assert_called_once()
         assert manager.current_popup == popup2
 

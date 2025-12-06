@@ -1,8 +1,5 @@
-import configparser
 import logging
-import os
 import tkinter as tk
-from tkinter import messagebox, ttk
 from unittest.mock import Mock, MagicMock, patch, mock_open
 
 import pytest
@@ -398,7 +395,7 @@ class TestSaveFile:
         mock_dirname.return_value = 'C:/test'
 
         # 初期化時は成功、保存時は失敗
-        open_mocks = [mock_open(read_data="")(), None]
+        open_mocks = [mock_open()(), None]
 
         with patch('builtins.open', side_effect=[mock_open(read_data="")(), PermissionError("Permission denied")]):
             # Act

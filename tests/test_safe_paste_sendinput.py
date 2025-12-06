@@ -1,6 +1,6 @@
 import logging
 import time
-from unittest.mock import Mock, patch, call
+from unittest.mock import patch
 
 import pytest
 
