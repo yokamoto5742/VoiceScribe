@@ -1,21 +1,23 @@
+"""録音制御を提供するモジュール"""
 import configparser
 import glob
 import logging
 import os
-import queue
 import threading
 import time
 import tkinter as tk
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Optional
 
-from external_service.elevenlabs_api import transcribe_audio
-from service.audio_recorder import save_audio
-from service.text_processing import copy_and_paste_transcription, process_punctuation
+from service.recording_timer import RecordingTimer
+from service.transcription_handler import TranscriptionHandler
+from service.ui_queue_processor import UIQueueProcessor
 from utils.config_manager import get_config_value
 
 
 class RecordingController:
+    """録音の開始・停止と処理フローを制御するクラス"""
+
     def __init__(
             self,
             master: tk.Tk,
@@ -26,97 +28,39 @@ class RecordingController:
             ui_callbacks: Dict[str, Callable],
             notification_callback: Callable
     ):
-        self.cancel_processing = False
         self.master = master
         self.config = config
         self.recorder = recorder
-        self.client = client
-        self.replacements = replacements
         self.ui_callbacks = ui_callbacks
         self.show_notification = notification_callback
 
-        self.recording_timer: Optional[threading.Timer] = None
-        self.five_second_timer: Optional[str] = None
-        self.paste_timer = None
-        self.five_second_notification_shown: bool = False
-        self.processing_thread: Optional[threading.Thread] = None
-
-        self.use_punctuation: bool = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
-
-        self.transcribe_audio_func = transcribe_audio
-
         self.temp_dir = config['PATHS']['TEMP_DIR']
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
-
-        # スレッドセーフなUI更新用キュー
-        self._ui_queue: queue.Queue = queue.Queue()
-        self._ui_lock = threading.Lock()
-        self._is_shutting_down = False
-
         os.makedirs(self.temp_dir, exist_ok=True)
+
+        # UIキュー処理
+        self.ui_processor = UIQueueProcessor(master)
+        self.ui_processor.start()
+
+        # 文字起こし処理
+        use_punctuation = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
+        self.transcription_handler = TranscriptionHandler(
+            master, config, client, replacements, self.ui_processor, use_punctuation
+        )
+        self.transcription_handler.set_error_callback(self._safe_error_handler)
+
+        # タイマー管理
+        self.recording_timer = RecordingTimer(
+            master, config, self.ui_processor,
+            notification_callback,
+            lambda: self.recorder.is_recording,
+            self._stop_recording_process
+        )
+
         self._cleanup_temp_files()
 
-        self._start_ui_queue_processor()
-
-    def _start_ui_queue_processor(self):
-
-        def process_queue():
-            if self._is_shutting_down:
-                return
-
-            try:
-                for _ in range(10):
-                    try:
-                        callback, args = self._ui_queue.get_nowait()
-                        try:
-                            callback(*args)
-                        except tk.TclError as e:
-                            logging.warning(f"UIコールバック実行中にTclError: {str(e)}")
-                        except Exception as e:
-                            logging.error(f"UIコールバック実行中にエラー: {str(e)}")
-                    except queue.Empty:
-                        break
-            except Exception as e:
-                logging.error(f"UIキュー処理中にエラー: {str(e)}")
-            finally:
-                if not self._is_shutting_down and self._is_ui_valid():
-                    try:
-                        self.master.after(50, process_queue)
-                    except tk.TclError:
-                        pass
-
-        if self._is_ui_valid():
-            try:
-                self.master.after(50, process_queue)
-            except tk.TclError as e:
-                logging.error(f"UIキュー処理開始に失敗: {str(e)}")
-
-    def _schedule_ui_callback(self, callback: Callable, *args):
-        """スレッドセーフにUIコールバックをスケジュール"""
-        if self._is_shutting_down:
-            logging.debug("シャットダウン中のためUIコールバックをスキップ")
-            return
-
-        try:
-            self._ui_queue.put_nowait((callback, args))
-        except Exception as e:
-            logging.error(f"UIコールバックのキューイングに失敗: {str(e)}")
-
-    def _is_ui_valid(self) -> bool:
-        if self._is_shutting_down:
-            return False
-
-        try:
-            with self._ui_lock:
-                return (self.master is not None and
-                        hasattr(self.master, 'winfo_exists') and
-                        self.master.winfo_exists())
-        except tk.TclError:
-            return False
-        except Exception:
-            return False
-
     def _cleanup_temp_files(self):
+        """古い一時ファイルを削除"""
         try:
             current_time = datetime.now()
             pattern = os.path.join(self.temp_dir, "*.wav")
@@ -133,8 +77,9 @@ class RecordingController:
             logging.error(f"クリーンアップ処理中にエラーが発生しました: {e}")
 
     def _handle_error(self, error_msg: str):
+        """エラーを処理してUIに反映"""
         try:
-            if self._is_ui_valid():
+            if self.ui_processor.is_ui_valid():
                 self.show_notification("エラー", error_msg)
                 self.ui_callbacks['update_status_label'](
                     f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
@@ -145,17 +90,30 @@ class RecordingController:
         except Exception as e:
             logging.error(f"エラーハンドリング中にエラー: {str(e)}")
 
+    def _safe_error_handler(self, error_msg: str):
+        """スレッドセーフなエラーハンドラ"""
+        try:
+            if self.ui_processor.is_ui_valid():
+                self._handle_error(error_msg)
+            else:
+                logging.error(f"UI無効時のエラー: {error_msg}")
+        except Exception as e:
+            logging.error(f"エラーハンドリング中にエラー: {str(e)}")
+
     def toggle_recording(self):
+        """録音の開始/停止を切り替え"""
         if not self.recorder.is_recording:
             self.start_recording()
         else:
             self.stop_recording()
 
     def start_recording(self):
-        if self.processing_thread and self.processing_thread.is_alive():
+        """録音を開始"""
+        if (self.transcription_handler.processing_thread and
+                self.transcription_handler.processing_thread.is_alive()):
             raise RuntimeError("前回の処理が完了していません")
 
-        self.cancel_processing = False
+        self.transcription_handler.reset_cancel()
         self.recorder.start_recording()
         self.ui_callbacks['update_record_button'](True)
         self.ui_callbacks['update_status_label'](
@@ -165,105 +123,72 @@ class RecordingController:
         recording_thread = threading.Thread(target=self._safe_record, daemon=False)
         recording_thread.start()
 
-        auto_stop_timer = int(self.config['RECORDING']['AUTO_STOP_TIMER'])
-        self.recording_timer = threading.Timer(auto_stop_timer, self.auto_stop_recording)
         self.recording_timer.start()
 
-        self.five_second_notification_shown = False
-        if self._is_ui_valid():
-            self.five_second_timer = self.master.after(
-                (auto_stop_timer - 5) * 1000,
-                self.show_five_second_notification
-            )
-
     def _safe_record(self):
+        """安全な録音処理"""
         try:
             self.recorder.record()
         except Exception as e:
             logging.error(f"録音中にエラーが発生しました: {str(e)}")
             try:
-                self.master.after(0, self._safe_error_handler, f"録音中にエラーが発生しました: {str(e)}")
+                self.master.after(0, self._safe_error_handler,
+                                  f"録音中にエラーが発生しました: {str(e)}")
             except Exception:
                 pass
 
     def stop_recording(self):
+        """録音を停止"""
         try:
-            if self.recording_timer and self.recording_timer.is_alive():
-                self.recording_timer.cancel()
-
-            if self.five_second_timer:
-                try:
-                    if self._is_ui_valid():
-                        self.master.after_cancel(self.five_second_timer)
-                except Exception:
-                    pass
-                self.five_second_timer = None
-
+            self.recording_timer.cancel()
             self._stop_recording_process()
         except Exception as e:
             self._safe_error_handler(f"録音の停止中にエラーが発生しました: {str(e)}")
 
-    def auto_stop_recording(self):
-        self._schedule_ui_callback(self._auto_stop_recording_ui)
-
-    def _auto_stop_recording_ui(self):
-        try:
-            self.show_notification("自動停止", "アプリケーションを終了します")
-            self._stop_recording_process()
-            if self._is_ui_valid():
-                self.master.after(1000, self.master.quit)
-        except Exception as e:
-            logging.error(f"自動停止処理中にエラー: {str(e)}")
-
     def _stop_recording_process(self):
+        """録音停止後の処理"""
         try:
             frames, sample_rate = self.recorder.stop_recording()
-            logging.info(f"音声データを取得しました")
+            logging.info("音声データを取得しました")
 
             self.ui_callbacks['update_record_button'](False)
             self.ui_callbacks['update_status_label']("テキスト出力中...")
 
-            self.processing_thread = threading.Thread(
-                target=self.transcribe_audio_frames,
-                args=(frames, sample_rate),
+            self.transcription_handler.processing_thread = threading.Thread(
+                target=self.transcription_handler.transcribe_frames,
+                args=(frames, sample_rate, self._safe_ui_update, self._safe_error_handler),
                 daemon=False
             )
-            self.processing_thread.start()
+            self.transcription_handler.processing_thread.start()
 
-            if self._is_ui_valid():
-                self.master.after(100, self._check_process_thread, self.processing_thread)
+            if self.ui_processor.is_ui_valid():
+                self.master.after(
+                    100,
+                    self._check_process_thread,
+                    self.transcription_handler.processing_thread
+                )
         except Exception as e:
             logging.error(f"録音停止処理中にエラー: {str(e)}")
             self._safe_error_handler(f"録音停止処理中にエラー: {str(e)}")
 
     def _check_process_thread(self, thread: threading.Thread):
+        """処理スレッドの完了をチェック"""
         try:
             if not thread.is_alive():
                 self.ui_callbacks['update_status_label'](
                     f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
                 )
-                self.processing_thread = None
+                self.transcription_handler.processing_thread = None
                 return
 
             self.ui_callbacks['update_status_label']("テキスト出力中...")
-            if self._is_ui_valid():
+            if self.ui_processor.is_ui_valid():
                 self.master.after(100, self._check_process_thread, thread)
         except Exception as e:
             logging.error(f"処理スレッドチェック中にエラー: {str(e)}")
 
-    def show_five_second_notification(self):
-        try:
-            if self.recorder.is_recording and not self.five_second_notification_shown:
-                if self._is_ui_valid():
-                    self.master.lift()
-                    self.master.attributes('-topmost', True)
-                    self.master.attributes('-topmost', False)
-                    self.show_notification("自動停止", "あと5秒で音声入力を停止します")
-                    self.five_second_notification_shown = True
-        except Exception as e:
-            logging.error(f"通知表示中にエラー: {str(e)}")
-
     def handle_audio_file(self, event):
+        """音声ファイルを処理"""
         try:
             file_path = self.master.clipboard_get()
             if not os.path.exists(file_path):
@@ -272,17 +197,11 @@ class RecordingController:
 
             self.ui_callbacks['update_status_label']('音声ファイル処理中...')
 
-            transcription = self.transcribe_audio_func(
+            self.transcription_handler.handle_audio_file(
                 file_path,
-                self.config,
-                self.client
+                self._safe_ui_update,
+                lambda e: self.show_notification('エラー', e)
             )
-            if transcription:
-                transcription = process_punctuation(transcription, self.use_punctuation)
-                self._safe_ui_update(transcription)
-            else:
-                raise ValueError('音声ファイルの処理に失敗しました')
-
         except Exception as e:
             self.show_notification('エラー', str(e))
         finally:
@@ -290,60 +209,11 @@ class RecordingController:
                 f"{self.config['KEYS']['TOGGLE_RECORDING']}キーで音声入力開始/停止"
             )
 
-    def transcribe_audio_frames(self, frames: List[bytes], sample_rate: int):
-        try:
-            logging.info("音声フレーム処理開始")
-
-            if self.cancel_processing:
-                logging.info("処理がキャンセルされました")
-                return
-
-            temp_audio_file = save_audio(frames, sample_rate, self.config)
-            if not temp_audio_file:
-                raise ValueError("音声ファイルの保存に失敗しました")
-
-            if self.cancel_processing:
-                logging.info("処理がキャンセルされました")
-                return
-
-            logging.info("文字起こし開始")
-            transcription = self.transcribe_audio_func(
-                temp_audio_file,
-                self.config,
-                self.client
-            )
-
-            if not transcription:
-                raise ValueError("音声ファイルの文字起こしに失敗しました")
-
-            logging.debug(f"句読点処理開始: use_punctuation={self.use_punctuation}")
-            transcription = process_punctuation(transcription, self.use_punctuation)
-            logging.debug("句読点処理完了")
-
-            if self.cancel_processing:
-                logging.info("処理がキャンセルされました")
-                return
-
-            logging.debug("UI更新をスケジュール")
-            try:
-                self.master.after(0, self._safe_ui_update, transcription)
-            except Exception:
-                pass
-            logging.debug("UI更新スケジュール完了")
-
-        except Exception as e:
-            logging.error(f"文字起こし処理中にエラー: {str(e)}")
-            import traceback
-            logging.debug(f"詳細: {traceback.format_exc()}")
-            try:
-                self.master.after(0, self._safe_error_handler, str(e))
-            except Exception:
-                pass
-
     def _safe_ui_update(self, text: str):
+        """スレッドセーフなUI更新"""
         try:
             logging.debug(f"_safe_ui_update開始: text長={len(text)}")
-            if self._is_ui_valid():
+            if self.ui_processor.is_ui_valid():
                 self.ui_update(text)
             else:
                 logging.warning("UIが無効なため、UI更新をスキップします")
@@ -352,129 +222,84 @@ class RecordingController:
             import traceback
             logging.debug(f"詳細: {traceback.format_exc()}")
 
-    def _safe_error_handler(self, error_msg: str):
-        try:
-            if self._is_ui_valid():
-                self._handle_error(error_msg)
-            else:
-                logging.error(f"UI無効時のエラー: {error_msg}")
-        except Exception as e:
-            logging.error(f"エラーハンドリング中にエラー: {str(e)}")
-
     def ui_update(self, text: str):
+        """UIを更新してペースト処理をスケジュール"""
         try:
             logging.debug(f"ui_update開始: text長={len(text)}")
             paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
-            if self._is_ui_valid():
-                self.master.after(paste_delay, self.copy_and_paste, text)
+            if self.ui_processor.is_ui_valid():
+                self.master.after(
+                    paste_delay,
+                    self.transcription_handler.copy_and_paste,
+                    text
+                )
                 logging.debug(f"copy_and_pasteをスケジュール: delay={paste_delay}ms")
         except Exception as e:
             logging.error(f"UI更新中にエラー: {str(e)}")
             import traceback
             logging.debug(f"詳細: {traceback.format_exc()}")
 
-    def copy_and_paste(self, text: str):
-        """UI スレッドから呼び出される。新しいスレッドで貼り付け処理を実行"""
-        try:
-            logging.debug(f"copy_and_paste開始: text長={len(text)}")
-
-            # シャットダウン中なら処理しない
-            if self._is_shutting_down:
-                logging.info("シャットダウン中のためcopy_and_pasteをスキップ")
-                return
-
-            # UI有効性を再確認
-            if not self._is_ui_valid():
-                logging.warning("UIが無効なためcopy_and_pasteをスキップ")
-                return
-
-            thread = threading.Thread(
-                target=self._safe_copy_and_paste,
-                args=(text,),
-                daemon=True,
-                name="CopyPasteThread"
-            )
-            thread.start()
-            logging.debug("CopyPasteThreadを開始しました")
-
-        except RuntimeError as e:
-            logging.error(f"スレッド作成中にRuntimeError: {str(e)}")
-        except Exception as e:
-            logging.error(f"コピー&ペースト開始中にエラー: {str(e)}")
-            import traceback
-            logging.debug(f"詳細: {traceback.format_exc()}")
-
-    def _safe_copy_and_paste(self, text: str):
-        """バックグラウンドスレッドで実行される貼り付け処理"""
-        try:
-            logging.debug("_safe_copy_and_paste開始")
-
-            # シャットダウンチェック
-            if self._is_shutting_down:
-                logging.info("シャットダウン中のため_safe_copy_and_pasteを中断")
-                return
-
-            copy_and_paste_transcription(text, self.replacements, self.config)
-            logging.debug("_safe_copy_and_paste完了")
-
-        except RuntimeError as e:
-            logging.error(f"_safe_copy_and_paste RuntimeError: {str(e)}")
-            import traceback
-            logging.debug(f"詳細: {traceback.format_exc()}")
-        except OSError as e:
-            logging.error(f"_safe_copy_and_paste OSError: {str(e)}")
-            import traceback
-            logging.debug(f"詳細: {traceback.format_exc()}")
-        except Exception as e:
-            logging.error(f"コピー&ペースト実行中にエラー: {type(e).__name__}: {str(e)}")
-            import traceback
-            logging.debug(f"詳細: {traceback.format_exc()}")
-            # UIコールバックは安全にスケジュール
-            if not self._is_shutting_down:
-                self._schedule_ui_callback(self._safe_error_handler, f"コピー&ペースト中にエラー: {str(e)}")
-
     def cleanup(self):
+        """リソースをクリーンアップ"""
         try:
             logging.info("RecordingController クリーンアップ開始")
-            self._is_shutting_down = True
-            self.cancel_processing = True
+            self.ui_processor.shutdown()
+            self.transcription_handler.cancel()
 
             if self.recorder.is_recording:
                 self.stop_recording()
 
-            if self.processing_thread and self.processing_thread.is_alive():
+            if (self.transcription_handler.processing_thread and
+                    self.transcription_handler.processing_thread.is_alive()):
                 logging.info("処理スレッドの完了を待機中...")
-                for _ in range(50):  # 5秒間待機
-                    if not self.processing_thread.is_alive():
+                for _ in range(50):
+                    if not self.transcription_handler.processing_thread.is_alive():
                         break
                     time.sleep(0.1)
 
-                if self.processing_thread.is_alive():
+                if self.transcription_handler.processing_thread.is_alive():
                     logging.warning("処理スレッドが強制終了されました")
-                    self.processing_thread.join(1.0)
+                    self.transcription_handler.processing_thread.join(1.0)
 
-            if self.recording_timer and self.recording_timer.is_alive():
-                self.recording_timer.cancel()
-
-            if self.five_second_timer:
-                try:
-                    if self._is_ui_valid():
-                        self.master.after_cancel(self.five_second_timer)
-                except Exception:
-                    pass
-
+            self.recording_timer.cleanup()
             self._cleanup_temp_files()
 
         except Exception as e:
             logging.error(f"クリーンアップ処理中にエラーが発生しました: {str(e)}")
 
-    def _wait_for_processing(self):
-        if self.processing_thread and self.processing_thread.is_alive():
-            logging.info("処理スレッドの完了を待機中...")
-            self.ui_callbacks['update_status_label']("処理完了待機中...")
-            self.processing_thread.join(timeout=5.0)
+    # 後方互換性のためのプロパティ
+    @property
+    def use_punctuation(self) -> bool:
+        return self.transcription_handler.use_punctuation
 
-            if self.processing_thread.is_alive():
-                logging.warning("処理スレッドの待機がタイムアウトしました")
-            else:
-                logging.info("処理スレッドの待機が完了しました")
+    @use_punctuation.setter
+    def use_punctuation(self, value: bool):
+        self.transcription_handler.use_punctuation = value
+
+    @property
+    def cancel_processing(self) -> bool:
+        return self.transcription_handler.cancel_processing
+
+    @cancel_processing.setter
+    def cancel_processing(self, value: bool):
+        if value:
+            self.transcription_handler.cancel()
+        else:
+            self.transcription_handler.reset_cancel()
+
+    @property
+    def processing_thread(self) -> Optional[threading.Thread]:
+        return self.transcription_handler.processing_thread
+
+    @processing_thread.setter
+    def processing_thread(self, value: Optional[threading.Thread]):
+        self.transcription_handler.processing_thread = value
+
+    # 後方互換性のためのメソッド
+    def _schedule_ui_callback(self, callback: Callable, *args):
+        """スレッドセーフにUIコールバックをスケジュール（後方互換性）"""
+        self.ui_processor.schedule_callback(callback, *args)
+
+    def _is_ui_valid(self) -> bool:
+        """UIが有効かどうかを確認（後方互換性）"""
+        return self.ui_processor.is_ui_valid()
