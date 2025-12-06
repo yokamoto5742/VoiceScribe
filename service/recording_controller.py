@@ -1,4 +1,3 @@
-"""録音制御を提供するモジュール"""
 import configparser
 import glob
 import logging
@@ -16,7 +15,6 @@ from utils.config_manager import get_config_value
 
 
 class RecordingController:
-    """録音の開始・停止と処理フローを制御するクラス"""
 
     def __init__(
             self,
@@ -38,11 +36,10 @@ class RecordingController:
         self.cleanup_minutes = int(config['PATHS']['CLEANUP_MINUTES'])
         os.makedirs(self.temp_dir, exist_ok=True)
 
-        # UIキュー処理
         self.ui_processor = UIQueueProcessor(master)
         self.ui_processor.start()
 
-        # 文字起こし処理
+        # 文字起こしテキストの処理
         use_punctuation = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
         self.transcription_handler = TranscriptionHandler(
             master, config, client, replacements, self.ui_processor, use_punctuation
@@ -108,7 +105,6 @@ class RecordingController:
             self.stop_recording()
 
     def start_recording(self):
-        """録音を開始"""
         if (self.transcription_handler.processing_thread and
                 self.transcription_handler.processing_thread.is_alive()):
             raise RuntimeError("前回の処理が完了していません")
@@ -126,7 +122,6 @@ class RecordingController:
         self.recording_timer.start()
 
     def _safe_record(self):
-        """安全な録音処理"""
         try:
             self.recorder.record()
         except Exception as e:
@@ -138,7 +133,6 @@ class RecordingController:
                 pass
 
     def stop_recording(self):
-        """録音を停止"""
         try:
             self.recording_timer.cancel()
             self._stop_recording_process()
@@ -226,7 +220,7 @@ class RecordingController:
         """UIを更新してペースト処理をスケジュール"""
         try:
             logging.debug(f"ui_update開始: text長={len(text)}")
-            paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.1)) * 1000)
+            paste_delay = int(float(self.config['CLIPBOARD'].get('PASTE_DELAY', 0.3)) * 1000)
             if self.ui_processor.is_ui_valid():
                 self.master.after(
                     paste_delay,

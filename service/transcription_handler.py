@@ -1,4 +1,3 @@
-"""音声文字起こし処理を提供するモジュール"""
 import configparser
 import logging
 import threading
@@ -13,7 +12,6 @@ from service.ui_queue_processor import UIQueueProcessor
 
 
 class TranscriptionHandler:
-    """音声の文字起こしとペースト処理を担当するクラス"""
 
     def __init__(
             self,

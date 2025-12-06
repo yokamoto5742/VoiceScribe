@@ -1,4 +1,3 @@
-"""スレッドセーフなUIキュー処理を提供するモジュール"""
 import logging
 import queue
 import threading

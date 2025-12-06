@@ -1,4 +1,3 @@
-"""録音タイマー管理を提供するモジュール"""
 import configparser
 import logging
 import threading
@@ -9,7 +8,6 @@ from service.ui_queue_processor import UIQueueProcessor
 
 
 class RecordingTimer:
-    """録音の自動停止タイマーと警告通知を管理するクラス"""
 
     def __init__(
             self,
@@ -58,11 +56,9 @@ class RecordingTimer:
             self._five_second_timer = None
 
     def _auto_stop_triggered(self):
-        """自動停止タイマーが発火した時の処理"""
         self.ui_processor.schedule_callback(self._auto_stop_ui)
 
     def _auto_stop_ui(self):
-        """UI スレッドで自動停止処理を実行"""
         try:
             self.show_notification("自動停止", "アプリケーションを終了します")
             self.on_auto_stop()
@@ -72,7 +68,6 @@ class RecordingTimer:
             logging.error(f"自動停止処理中にエラー: {str(e)}")
 
     def _show_five_second_notification(self):
-        """5秒前警告を表示"""
         try:
             if self.is_recording() and not self._five_second_notification_shown:
                 if self.ui_processor.is_ui_valid():
