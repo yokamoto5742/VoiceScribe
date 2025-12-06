@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 def safe_clipboard_copy(text: str) -> bool:
-    """テキストを安全にクリップボードへコピー"""
     if not text:
         return False
 

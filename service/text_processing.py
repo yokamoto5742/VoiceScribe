@@ -127,7 +127,7 @@ def copy_and_paste_transcription(
             raise Exception("クリップボードへのコピーに失敗しました")
         logging.debug("クリップボードへコピー完了")
 
-        paste_delay = get_config_value(config, 'CLIPBOARD', 'paste_delay', 0.2)
+        paste_delay = get_config_value(config, 'CLIPBOARD', 'paste_delay', 0.3)
 
         def delayed_paste():
             try:

@@ -18,11 +18,6 @@ def setup_elevenlabs_client() -> ElevenLabs:
 
 
 def validate_audio_file(file_path: str) -> tuple[bool, Optional[str]]:
-    """音声ファイルの存在と有効性を検証
-
-    Returns:
-        tuple[bool, Optional[str]]: (検証成功, エラーメッセージ)
-    """
     if not file_path:
         return False, "音声ファイルパスが未指定です"
 
