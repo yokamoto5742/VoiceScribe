@@ -59,10 +59,8 @@ class TestRecordingControllerInit:
         assert controller.ui_callbacks == self.mock_ui_callbacks
         assert controller.show_notification == self.mock_notification_callback
 
-        assert controller.use_punctuation is True
         assert controller.temp_dir == '/test/temp'
         assert controller.cleanup_minutes == 240
-        assert controller.cancel_processing is False
 
         mock_makedirs.assert_called_once_with('/test/temp', exist_ok=True)
         mock_cleanup.assert_called_once()
@@ -116,7 +114,7 @@ class TestRecordingControllerUIManagement:
     def test_is_ui_valid_success(self):
         """正常系: UI有効性チェック成功"""
         # Act
-        result = self.controller._is_ui_valid()
+        result = self.controller.ui_processor.is_ui_valid()
 
         # Assert
         assert result is True
@@ -127,7 +125,7 @@ class TestRecordingControllerUIManagement:
         self.mock_master.winfo_exists.side_effect = tk.TclError("Invalid window")
 
         # Act
-        result = self.controller._is_ui_valid()
+        result = self.controller.ui_processor.is_ui_valid()
 
         # Assert
         assert result is False
@@ -138,7 +136,7 @@ class TestRecordingControllerUIManagement:
         self.controller.ui_processor.master = None
 
         # Act
-        result = self.controller._is_ui_valid()
+        result = self.controller.ui_processor.is_ui_valid()
 
         # Assert
         assert result is False
@@ -162,7 +160,7 @@ class TestRecordingControllerUIManagement:
         self.mock_master.winfo_exists.return_value = False
 
         # Act
-        result = self.controller._is_ui_valid()
+        result = self.controller.ui_processor.is_ui_valid()
 
         # Assert
         assert result is False
@@ -240,7 +238,6 @@ class TestRecordingControllerRecording:
         self.controller.start_recording()
 
         # Assert
-        assert self.controller.cancel_processing is False
         self.mock_recorder.start_recording.assert_called_once()
         self.mock_ui_callbacks['update_record_button'].assert_called_once_with(True)
         self.mock_ui_callbacks['update_status_label'].assert_called_once()
@@ -254,7 +251,7 @@ class TestRecordingControllerRecording:
         # Arrange
         mock_active_thread = Mock()
         mock_active_thread.is_alive.return_value = True
-        self.controller.processing_thread = mock_active_thread
+        self.controller.transcription_handler.processing_thread = mock_active_thread
 
         # Act & Assert
         with pytest.raises(RuntimeError, match="前回の処理が完了していません"):
@@ -518,7 +515,7 @@ class TestRecordingControllerAudioProcessing:
         # Arrange
         test_frames = [b'frame1', b'frame2']
         sample_rate = 16000
-        self.controller.cancel_processing = True
+        self.controller.transcription_handler.cancel()
         mock_on_complete = Mock()
         mock_on_error = Mock()
 
@@ -706,18 +703,19 @@ class TestRecordingControllerCleanup:
     def test_cleanup_no_active_components(self):
         """境界値: アクティブなコンポーネントがない場合"""
         # Arrange
-        self.controller.processing_thread = None
+        self.controller.transcription_handler.processing_thread = None
         self.mock_recorder.is_recording = False
 
         with patch.object(self.controller, '_cleanup_temp_files') as mock_cleanup_files, \
-             patch.object(self.controller.recording_timer, 'cleanup') as mock_timer_cleanup:
+             patch.object(self.controller.recording_timer, 'cleanup') as mock_timer_cleanup, \
+             patch.object(self.controller.ui_processor, 'shutdown') as mock_ui_shutdown:
             # Act
             self.controller.cleanup()
 
             # Assert
-            assert self.controller.cancel_processing is True
             mock_cleanup_files.assert_called_once()
             mock_timer_cleanup.assert_called_once()
+            mock_ui_shutdown.assert_called_once()
 
 
 class TestRecordingControllerThreadSafety:
@@ -857,7 +855,9 @@ class TestRecordingControllerIntegration:
         # Arrange
         self.mock_recorder.start_recording.side_effect = Exception("Recording error")
 
-        with patch.object(self.controller, '_handle_error') as mock_handle_error:
+        with patch.object(self.controller, '_handle_error') as mock_handle_error, \
+             patch.object(self.controller.ui_processor, 'shutdown'), \
+             patch.object(self.controller.recording_timer, 'cleanup'):
             # Act
             try:
                 self.controller.start_recording()
@@ -869,9 +869,6 @@ class TestRecordingControllerIntegration:
 
             # クリーンアップ実行
             self.controller.cleanup()
-
-            # Assert
-            assert self.controller.cancel_processing is True
 
 
 # パフォーマンステスト
