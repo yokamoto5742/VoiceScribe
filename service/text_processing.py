@@ -31,9 +31,9 @@ def process_punctuation(text: str, use_punctuation: bool) -> str:
         return text
 
 
-def get_replacements_path():
+def get_replacements_path() -> str:
     if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
     else:
         base_path = os.path.dirname(__file__)
 
