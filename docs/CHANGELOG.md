@@ -9,10 +9,6 @@
 
 ## [1.0.1] - 2025-12-07
 
-### 追加
-
-- `notification.py` に `show_timed_message()` 関数のデフォルト引数を追加
-
 ### 変更
 
 - `recording_controller.py` で punctuation 設定をインスタンス変数に格納して、状態管理を改善
@@ -46,10 +42,6 @@
 - API プロバイダーを ElevenLabs に統一
 - 外部 API 呼び出しの改善とログ強化
 - UI レイアウトの最適化
-
-### 削除
-
-- 旧 elevenlabs_api.py を削除
 
 [Unreleased]: https://github.com/yourusername/VoiceScribe/compare/v1.0.1...HEAD
 [1.0.1]: https://github.com/yourusername/VoiceScribe/compare/v0.0.1...v1.0.1
