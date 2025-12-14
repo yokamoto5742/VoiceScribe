@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-12-14
+
+### 追加
+
+- 設定ファイル管理機能（`config_manager.py`）でINI形式の設定をプログラムから管理可能に
+- ログローテーション機能（`log_rotation.py`）で古いログファイルを自動削除
+- 数字、月、アルファベットの置換ルールを拡充
+
+### 変更
+
+- `transcription_handler.py` の UI コールバック処理を `ui_processor` に委譲してアーキテクチャを改善
+- ウィンドウの高さをデフォルト設定で 400 に更新
+
 ## [1.0.1] - 2025-12-07
 
 ### 変更
@@ -43,6 +56,7 @@
 - 外部 API 呼び出しの改善とログ強化
 - UI レイアウトの最適化
 
-[Unreleased]: https://github.com/yourusername/VoiceScribe/compare/v1.0.1...HEAD
-[1.0.1]: https://github.com/yourusername/VoiceScribe/compare/v0.0.1...v1.0.1
-[0.0.1]: https://github.com/yourusername/VoiceScribe/releases/tag/v0.0.1
+[Unreleased]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/yokamoto5742/VoiceScribe/compare/v0.0.1...v1.0.1
+[0.0.1]: https://github.com/yokamoto5742/VoiceScribe/releases/tag/v0.0.1
