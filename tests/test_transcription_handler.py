@@ -120,7 +120,9 @@ class TestTranscriptionHandlerTranscribeFrames:
             self.mock_client
         )
         mock_process_punct.assert_called_once_with("文字起こし結果", False)
-        self.mock_master.after.assert_called_once_with(0, self.mock_on_complete, "文字起こし結果")
+        self.mock_ui_processor.schedule_callback.assert_called_once_with(
+            self.mock_on_complete, "文字起こし結果"
+        )
 
     @patch('service.transcription_handler.save_audio')
     def test_transcribe_frames_save_audio_fails(self, mock_save_audio):
@@ -135,11 +137,10 @@ class TestTranscriptionHandlerTranscribeFrames:
             self.mock_on_error
         )
 
-        self.mock_master.after.assert_called_once()
-        args = self.mock_master.after.call_args[0]
-        assert args[0] == 0
-        assert args[1] == self.mock_on_error
-        assert "音声ファイルの保存に失敗しました" in args[2]
+        self.mock_ui_processor.schedule_callback.assert_called_once()
+        args = self.mock_ui_processor.schedule_callback.call_args[0]
+        assert args[0] == self.mock_on_error
+        assert "音声ファイルの保存に失敗しました" in args[1]
 
     @patch('service.transcription_handler.save_audio')
     def test_transcribe_frames_transcription_fails(self, mock_save_audio):
@@ -155,11 +156,10 @@ class TestTranscriptionHandlerTranscribeFrames:
             self.mock_on_error
         )
 
-        self.mock_master.after.assert_called_once()
-        args = self.mock_master.after.call_args[0]
-        assert args[0] == 0
-        assert args[1] == self.mock_on_error
-        assert "音声ファイルの文字起こしに失敗しました" in args[2]
+        self.mock_ui_processor.schedule_callback.assert_called_once()
+        args = self.mock_ui_processor.schedule_callback.call_args[0]
+        assert args[0] == self.mock_on_error
+        assert "音声ファイルの文字起こしに失敗しました" in args[1]
 
     @patch('service.transcription_handler.save_audio')
     def test_transcribe_frames_cancelled_before_save(self, mock_save_audio):
@@ -175,7 +175,7 @@ class TestTranscriptionHandlerTranscribeFrames:
         )
 
         mock_save_audio.assert_not_called()
-        self.mock_master.after.assert_not_called()
+        self.mock_ui_processor.schedule_callback.assert_not_called()
 
     @patch('service.transcription_handler.save_audio')
     def test_transcribe_frames_cancelled_after_save(self, mock_save_audio):
@@ -196,7 +196,7 @@ class TestTranscriptionHandlerTranscribeFrames:
 
         # cancel_processingがTrueなので、最初のチェックで処理が中断される
         mock_save_audio.assert_not_called()
-        self.mock_master.after.assert_not_called()
+        self.mock_ui_processor.schedule_callback.assert_not_called()
 
     @patch('service.transcription_handler.process_punctuation')
     @patch('service.transcription_handler.save_audio')
@@ -223,7 +223,7 @@ class TestTranscriptionHandlerTranscribeFrames:
         )
 
         # キャンセルされても結果は返されない
-        self.mock_master.after.assert_not_called()
+        self.mock_ui_processor.schedule_callback.assert_not_called()
 
     @patch('service.transcription_handler.save_audio')
     def test_transcribe_frames_with_exception(self, mock_save_audio):
@@ -238,27 +238,9 @@ class TestTranscriptionHandlerTranscribeFrames:
             self.mock_on_error
         )
 
-        self.mock_master.after.assert_called_once()
-        args = self.mock_master.after.call_args[0]
-        assert args[0] == 0
-        assert args[1] == self.mock_on_error
-
-    @patch('service.transcription_handler.save_audio')
-    def test_transcribe_frames_master_after_fails(self, mock_save_audio):
-        """異常系: master.afterが失敗"""
-        frames = [b'audio_data']
-        mock_save_audio.return_value = '/test/temp/audio.wav'
-        self.handler.transcribe_audio_func = Mock(return_value="結果")
-        self.mock_master.after.side_effect = Exception("after error")
-
-        self.handler.transcribe_frames(
-            frames,
-            16000,
-            self.mock_on_complete,
-            self.mock_on_error
-        )
-
-        # 例外が発生しても処理は続行
+        self.mock_ui_processor.schedule_callback.assert_called_once()
+        args = self.mock_ui_processor.schedule_callback.call_args[0]
+        assert args[0] == self.mock_on_error
 
 
 class TestTranscriptionHandlerHandleAudioFile:

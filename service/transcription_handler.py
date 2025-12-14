@@ -75,19 +75,13 @@ class TranscriptionHandler:
                 return
 
             logging.debug("UI更新をスケジュール")
-            try:
-                self.master.after(0, on_complete, transcription)
-            except Exception:
-                pass
+            self.ui_processor.schedule_callback(on_complete, transcription)
             logging.debug("UI更新スケジュール完了")
 
         except Exception as e:
             logging.error(f"文字起こし処理中にエラー: {str(e)}")
             logging.debug(f"詳細: {traceback.format_exc()}")
-            try:
-                self.master.after(0, on_error, str(e))
-            except Exception:
-                pass
+            self.ui_processor.schedule_callback(on_error, str(e))
 
     def handle_audio_file(
             self,
