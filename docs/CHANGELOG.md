@@ -7,6 +7,17 @@
 
 ## [Unreleased]
 
+## [1.0.3] - 2025-12-15
+
+### 追加
+
+- 句読点設定のパース機能を強化
+
+### 変更
+
+- 句読点設定を設定ファイルの FORMATTING セクションに移動
+- カンマ設定を句読点設定に連動させる仕様に変更
+
 ### 修正
 
 - 句読点切り替えボタンで句読点が除去されない不具合を修正
@@ -61,7 +72,8 @@
 - 外部 API 呼び出しの改善とログ強化
 - UI レイアウトの最適化
 
-[Unreleased]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/yokamoto5742/VoiceScribe/compare/v0.0.1...v1.0.1
 [0.0.1]: https://github.com/yokamoto5742/VoiceScribe/releases/tag/v0.0.1
