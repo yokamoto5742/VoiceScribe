@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+### 修正
+
+- 句読点切り替えボタンで句読点が除去されない不具合を修正
+  - `RecordingController.use_punctuation` をプロパティ化し、変更時に `TranscriptionHandler.use_punctuation` も自動更新するように改善
+
 ## [1.0.2] - 2025-12-14
 
 ### 追加

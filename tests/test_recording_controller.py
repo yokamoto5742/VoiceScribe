@@ -944,3 +944,68 @@ class TestRecordingControllerPerformance:
         # Assert
         assert (end_time - start_time) < 1.0
         assert mock_remove.call_count == 1000
+
+
+class TestRecordingControllerPunctuationProperty:
+    """句読点プロパティのテストクラス"""
+
+    def setup_method(self):
+        """テスト用のRecordingControllerを準備"""
+        self.mock_master = Mock(spec=tk.Tk)
+        self.mock_master.winfo_exists.return_value = True
+        self.mock_recorder = Mock()
+        self.mock_recorder.is_recording = False
+
+        self.mock_config = {
+            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
+            'RECORDING': {'AUTO_STOP_TIMER': '60'}
+        }
+
+        with patch('service.recording_controller.os.makedirs'), \
+             patch('service.recording_controller.RecordingController._cleanup_temp_files'):
+            self.controller = RecordingController(
+                self.mock_master,
+                self.mock_config,
+                self.mock_recorder,
+                Mock(),
+                {},
+                {'update_record_button': Mock(), 'update_status_label': Mock()},
+                Mock()
+            )
+
+    def test_use_punctuation_getter(self):
+        """正常系: use_punctuationのgetterが正常に動作"""
+        # Arrange - 初期値はTrueに設定されている
+        # Act
+        result = self.controller.use_punctuation
+
+        # Assert
+        assert result is True
+
+    def test_use_punctuation_setter_updates_both(self):
+        """正常系: use_punctuationのsetterがRecordingControllerとTranscriptionHandlerの両方を更新"""
+        # Arrange
+        initial_value = self.controller.use_punctuation
+        assert initial_value is True
+
+        # Act
+        self.controller.use_punctuation = False
+
+        # Assert
+        assert self.controller.use_punctuation is False
+        assert self.controller.transcription_handler.use_punctuation is False
+
+    def test_use_punctuation_setter_toggle(self):
+        """正常系: use_punctuationの切り替え"""
+        # Arrange & Act
+        self.controller.use_punctuation = False
+        assert self.controller.use_punctuation is False
+        assert self.controller.transcription_handler.use_punctuation is False
+
+        # Act - 再度切り替え
+        self.controller.use_punctuation = True
+
+        # Assert
+        assert self.controller.use_punctuation is True
+        assert self.controller.transcription_handler.use_punctuation is True

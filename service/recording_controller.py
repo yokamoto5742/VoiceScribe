@@ -40,9 +40,9 @@ class RecordingController:
         self.ui_processor.start()
 
         # 文字起こしテキストの処理
-        self.use_punctuation = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
+        self._use_punctuation = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
         self.transcription_handler = TranscriptionHandler(
-            master, config, client, replacements, self.ui_processor, self.use_punctuation
+            master, config, client, replacements, self.ui_processor, self._use_punctuation
         )
         self.transcription_handler.set_error_callback(self._safe_error_handler)
 
@@ -260,3 +260,12 @@ class RecordingController:
 
         except Exception as e:
             logging.error(f"クリーンアップ処理中にエラーが発生しました: {str(e)}")
+
+    @property
+    def use_punctuation(self) -> bool:
+        return self._use_punctuation
+
+    @use_punctuation.setter
+    def use_punctuation(self, value: bool):
+        self._use_punctuation = value
+        self.transcription_handler.use_punctuation = value
