@@ -40,7 +40,7 @@ class RecordingController:
         self.ui_processor.start()
 
         # 文字起こしテキストの処理
-        self._use_punctuation = get_config_value(config, 'WHISPER', 'USE_PUNCTUATION', True)
+        self._use_punctuation = get_config_value(config, 'FORMATTING', 'USE_PUNCTUATION', False)
         self.transcription_handler = TranscriptionHandler(
             master, config, client, replacements, self.ui_processor, self._use_punctuation
         )

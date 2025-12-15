@@ -76,6 +76,7 @@ class VoiceInputManager:
         self.ui_components.update_punctuation_button(use_punctuation)
         logging.info(f"現在句読点: {'あり' if use_punctuation else 'なし'}")
         self.config['FORMATTING']['USE_PUNCTUATION'] = str(use_punctuation)
+        self.config['FORMATTING']['USE_COMMA'] = str(use_punctuation)
         save_config(self.config)
 
     def close_application(self):
