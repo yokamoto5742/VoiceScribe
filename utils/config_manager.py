@@ -21,6 +21,9 @@ def get_config_path():
 def get_config_value(config: configparser.ConfigParser, section: str, key: str, default: Any) -> Any:
     try:
         value = config[section][key]
+        # bool型の場合は文字列を正しくパース
+        if isinstance(default, bool):
+            return value.lower() in ('true', '1', 'yes', 'on')
         return type(default)(value)
     except (KeyError, ValueError, TypeError):
         return default

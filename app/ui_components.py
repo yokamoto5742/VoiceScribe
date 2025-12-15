@@ -7,6 +7,7 @@ from tkinter import filedialog, messagebox
 from typing import Callable, Dict, Optional
 
 from service.replacements_editor import ReplacementsEditor
+from utils.config_manager import get_config_value
 
 class UIComponents:
     def __init__(
@@ -52,9 +53,10 @@ class UIComponents:
         )
         self.punctuation_button.pack(pady=5)
 
+        use_punctuation = get_config_value(self.config, 'FORMATTING', 'USE_PUNCTUATION', False)
         self.punctuation_status_label = tk.Label(
             self.master,
-            text='【現在句読点あり】',
+            text=f'【現在句読点{"あり】" if use_punctuation else "なし】"}',
         )
         self.punctuation_status_label.pack(pady=5)
 

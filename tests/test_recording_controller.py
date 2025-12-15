@@ -92,7 +92,7 @@ class TestRecordingControllerUIManagement:
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
         }
@@ -177,7 +177,7 @@ class TestRecordingControllerRecording:
         self.mock_recorder.is_recording = False
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'},
             'KEYS': {'TOGGLE_RECORDING': 'F1'}
@@ -328,7 +328,7 @@ class TestRecordingControllerAutoStop:
         self.mock_recorder.is_recording = False
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
         }
@@ -421,7 +421,7 @@ class TestRecordingControllerAudioProcessing:
         self.mock_recorder.is_recording = False
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'CLIPBOARD': {'PASTE_DELAY': '0.1'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
@@ -539,7 +539,7 @@ class TestRecordingControllerTextProcessing:
         self.mock_recorder.is_recording = False
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'CLIPBOARD': {'PASTE_DELAY': '0.1'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
@@ -630,7 +630,7 @@ class TestRecordingControllerCleanup:
         self.mock_recorder.is_recording = False
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
         }
@@ -729,7 +729,7 @@ class TestRecordingControllerThreadSafety:
         self.mock_recorder.is_recording = False
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'CLIPBOARD': {'PASTE_DELAY': '0.1'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
@@ -785,7 +785,7 @@ class TestRecordingControllerIntegration:
         self.mock_client = Mock()
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'},
             'KEYS': {'TOGGLE_RECORDING': 'F1'},
@@ -885,7 +885,7 @@ class TestRecordingControllerPerformance:
         mock_recorder = Mock()
         mock_recorder.is_recording = False
         config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
         }
@@ -915,7 +915,7 @@ class TestRecordingControllerPerformance:
         mock_recorder = Mock()
         mock_recorder.is_recording = False
         config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
         }
@@ -957,7 +957,7 @@ class TestRecordingControllerPunctuationProperty:
         self.mock_recorder.is_recording = False
 
         self.mock_config = {
-            'WHISPER': {'USE_PUNCTUATION': 'True'},
+            'FORMATTING': {'USE_PUNCTUATION': 'True'},
             'PATHS': {'TEMP_DIR': '/test/temp', 'CLEANUP_MINUTES': '240'},
             'RECORDING': {'AUTO_STOP_TIMER': '60'}
         }
