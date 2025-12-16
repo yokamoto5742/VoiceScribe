@@ -2,6 +2,7 @@ import configparser
 import glob
 import logging
 import os
+import shutil
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from typing import Callable, Dict, Optional
@@ -28,6 +29,7 @@ class UIComponents:
         self.reload_audio_button: Optional[tk.Button] = None
         self.load_audio_button: Optional[tk.Button] = None
         self.replace_button: Optional[tk.Button] = None
+        self.update_replacements_button: Optional[tk.Button] = None
         self.close_button: Optional[tk.Button] = None
 
     def setup_ui(self, version: str):
@@ -83,6 +85,14 @@ class UIComponents:
             width=15
         )
         self.replace_button.pack(pady=5)
+
+        self.update_replacements_button = tk.Button(
+            self.master,
+            text='置換辞書更新',
+            command=self.update_from_backup,
+            width=15
+        )
+        self.update_replacements_button.pack(pady=5)
 
         self.close_button = tk.Button(
             self.master,
@@ -151,3 +161,24 @@ class UIComponents:
 
     def open_replacements_editor(self):
         ReplacementsEditor(self.master, self.config)
+
+    def update_from_backup(self):
+        """backupから置換辞書を更新"""
+        backup_path = self.config['PATHS'].get('replacements_backup', '')
+        if not backup_path:
+            messagebox.showwarning('警告', 'バックアップパスが設定されていません')
+            return
+
+        if not os.path.exists(backup_path):
+            messagebox.showwarning('警告', f'バックアップファイルが見つかりません:\n{backup_path}')
+            return
+
+        replacements_path = self.config['PATHS']['replacements_file']
+
+        try:
+            shutil.copy2(backup_path, replacements_path)
+            logging.info(f'バックアップから置換辞書を更新しました: {backup_path} -> {replacements_path}')
+            messagebox.showinfo('更新完了', 'バックアップから置換辞書を更新しました')
+        except Exception as e:
+            logging.error(f'バックアップからの更新に失敗しました: {str(e)}')
+            messagebox.showerror('エラー', f'バックアップからの更新に失敗しました:\n{str(e)}')

@@ -1,6 +1,7 @@
 import configparser
 import logging
 import os
+import shutil
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -87,6 +88,9 @@ class ReplacementsEditor:
             with open(replacements_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
+            # backupパスが設定されていて、親ディレクトリが存在する場合のみコピー
+            self._copy_to_backup(replacements_path)
+
             messagebox.showinfo(
                 '保存完了',
                 'ファイルを保存しました'
@@ -99,3 +103,20 @@ class ReplacementsEditor:
                 'エラー',
                 f'ファイルの保存に失敗しました：\n{str(e)}'
             )
+
+    def _copy_to_backup(self, source_path: str) -> None:
+        """保存後にbackupパスへコピー (backupパスが無効な場合は何もしない)"""
+        backup_path = self.config['PATHS'].get('replacements_backup', '')
+        if not backup_path:
+            return
+
+        backup_dir = os.path.dirname(backup_path)
+        if not os.path.exists(backup_dir):
+            logging.debug(f'バックアップ先ディレクトリが見つかりません: {backup_dir}')
+            return
+
+        try:
+            shutil.copy2(source_path, backup_path)
+            logging.info(f'置換辞書をバックアップしました: {backup_path}')
+        except Exception as e:
+            logging.warning(f'バックアップへのコピーに失敗しました: {str(e)}')
