@@ -7,6 +7,13 @@
 
 ## [Unreleased]
 
+## [1.0.4] - 2025-12-16
+
+### 追加
+
+- 置換辞書のバックアップ機能を追加（辞書更新時に自動保存）
+- 置換辞書更新ボタンを UI に追加
+
 ## [1.0.3] - 2025-12-15
 
 ### 追加
@@ -71,9 +78,3 @@
 - API プロバイダーを ElevenLabs に統一
 - 外部 API 呼び出しの改善とログ強化
 - UI レイアウトの最適化
-
-[Unreleased]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.3...HEAD
-[1.0.3]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.2...v1.0.3
-[1.0.2]: https://github.com/yokamoto5742/VoiceScribe/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/yokamoto5742/VoiceScribe/compare/v0.0.1...v1.0.1
-[0.0.1]: https://github.com/yokamoto5742/VoiceScribe/releases/tag/v0.0.1
