@@ -72,7 +72,8 @@ def transcribe_audio(
             transcription = client.speech_to_text.convert(
                 file=(os.path.basename(audio_file_path), file_content),
                 model_id=config['ELEVENLABS']['MODEL'],
-                language_code=config['ELEVENLABS']['LANGUAGE']
+                language_code=config['ELEVENLABS']['LANGUAGE'],
+                tag_audio_events=config.getboolean('ELEVENLABS', 'tag_audio_events', fallback=False)
             )
 
         text_result = convert_response_to_text(transcription)
