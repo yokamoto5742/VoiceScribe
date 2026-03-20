@@ -1,4 +1,3 @@
-import configparser
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
@@ -9,6 +8,7 @@ from external_service.elevenlabs_api import (
     transcribe_audio,
     validate_audio_file,
 )
+from tests.conftest import dict_to_app_config
 
 
 class TestSetupElevenLabsClient:
@@ -164,11 +164,9 @@ class TestTranscribeAudio:
 
     def setup_method(self):
         """各テストメソッドの前に実行される設定"""
-        self.mock_config = configparser.ConfigParser()
-        self.mock_config['ELEVENLABS'] = {
-            'MODEL': 'scribe_v2',
-            'LANGUAGE': 'jpn'
-        }
+        self.mock_config = dict_to_app_config({
+            'ELEVENLABS': {'MODEL': 'scribe_v2', 'LANGUAGE': 'jpn'}
+        })
         self.mock_client = Mock()
 
     def test_transcribe_empty_file_path(self):

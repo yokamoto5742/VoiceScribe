@@ -1,14 +1,13 @@
-import configparser
 import logging
 import sys
 import time
 import tkinter as tk
-from typing import Any, Dict
 
+from app.notification import NotificationManager
 from app.ui_components import UIComponents
 from service.keyboard_handler import KeyboardHandler
-from service.notification import NotificationManager
-from service.recording_controller import RecordingController
+from service.recording_lifecycle import RecordingLifecycle
+from utils.app_config import AppConfig
 from utils.config_manager import save_config
 
 
@@ -16,39 +15,35 @@ class VoiceInputManager:
     def __init__(
             self,
             master: tk.Tk,
-            config: configparser.ConfigParser,
-            recorder: Any,
-            client: Any,
-            replacements: Dict[str, str],
+            config: AppConfig,
+            recording_lifecycle: RecordingLifecycle,
+            notification_manager: NotificationManager,
             version: str
     ):
         self.master = master
         self.config = config
         self.version = version
-        self.notification_manager = NotificationManager(master, config)
+        self.notification_manager = notification_manager
+        self.recording_lifecycle = recording_lifecycle
 
-        self.ui_components = UIComponents(master, config, {})
+        self.ui_components = UIComponents(master, config, {
+            'toggle_recording': self.toggle_recording,
+            'toggle_punctuation': self.toggle_punctuation,
+            'reload_audio': lambda: None,  # setup_ui後にupdate_callbacksで更新
+        })
+        self.ui_components.setup_ui(version)
 
-        callbacks = {
+        # setup_ui後にreload_audioコールバックを正しいメソッドに更新
+        self.ui_components.update_callbacks({
             'toggle_recording': self.toggle_recording,
             'toggle_punctuation': self.toggle_punctuation,
             'reload_audio': self.ui_components.reload_latest_audio,
-        }
+        })
 
-        self.ui_components.update_callbacks(callbacks)
-        self.ui_components.setup_ui(version)
-
-        self.recording_controller = RecordingController(
-            master,
-            config,
-            recorder,
-            client,
-            replacements,
-            {
-                'update_record_button': self.ui_components.update_record_button,
-                'update_status_label': self.ui_components.update_status_label,
-            },
-            self.notification_manager.show_timed_message
+        # UIコールバックをRecordingLifecycleに接続
+        recording_lifecycle.wire_ui_callbacks(
+            update_record_button=self.ui_components.update_record_button,
+            update_status_label=self.ui_components.update_status_label,
         )
 
         self.keyboard_handler = KeyboardHandler(
@@ -60,29 +55,27 @@ class VoiceInputManager:
             self.close_application,
         )
 
-        self.client = client
-        self.master.bind('<<LoadAudioFile>>', self.recording_controller.handle_audio_file)
+        self.master.bind('<<LoadAudioFile>>', recording_lifecycle.handle_audio_file)
 
-        start_minimized = self.config['OPTIONS'].getboolean('START_MINIMIZED', True)
-        if start_minimized:
+        if config.start_minimized:
             self.master.iconify()
 
-    def toggle_recording(self):
-        self.recording_controller.toggle_recording()
+    def toggle_recording(self) -> None:
+        self.recording_lifecycle.toggle_recording()
 
-    def toggle_punctuation(self):
-        use_punctuation = not self.recording_controller.use_punctuation
-        self.recording_controller.use_punctuation = use_punctuation
+    def toggle_punctuation(self) -> None:
+        use_punctuation = not self.recording_lifecycle.use_punctuation
+        self.recording_lifecycle.use_punctuation = use_punctuation
         self.ui_components.update_punctuation_button(use_punctuation)
         logging.info(f"現在句読点: {'あり' if use_punctuation else 'なし'}")
-        self.config['FORMATTING']['USE_PUNCTUATION'] = str(use_punctuation)
-        self.config['FORMATTING']['USE_COMMA'] = str(use_punctuation)
-        save_config(self.config)
+        self.config.use_punctuation = use_punctuation
+        self.config.use_comma = use_punctuation
+        save_config(self.config.raw_config)
 
-    def close_application(self):
+    def close_application(self) -> None:
         try:
-            if self.recording_controller:
-                self.recording_controller.cleanup()
+            if self.recording_lifecycle:
+                self.recording_lifecycle.cleanup()
             if self.keyboard_handler:
                 self.keyboard_handler.cleanup()
             if self.notification_manager:
@@ -91,5 +84,5 @@ class VoiceInputManager:
             self.master.quit()
 
         except Exception as e:
-            logging.error(f"アプリケーション終了処理中にエラー: {str(e)}")
+            logging.error(f'アプリケーション終了処理中にエラー: {str(e)}')
             sys.exit(1)

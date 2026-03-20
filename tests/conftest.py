@@ -1,5 +1,7 @@
 import configparser
 
+from utils.app_config import AppConfig
+
 
 def dict_to_config(config_dict: dict) -> configparser.ConfigParser:
     """辞書をConfigParserオブジェクトに変換する"""
@@ -9,3 +11,8 @@ def dict_to_config(config_dict: dict) -> configparser.ConfigParser:
         string_dict[section] = {key: str(value) for key, value in options.items()}
     config.read_dict(string_dict)
     return config
+
+
+def dict_to_app_config(config_dict: dict) -> AppConfig:
+    """辞書をAppConfigオブジェクトに変換する"""
+    return AppConfig(dict_to_config(config_dict))

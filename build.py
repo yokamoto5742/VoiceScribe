@@ -13,7 +13,7 @@ def build_executable():
         "--icon=assets/VoiceScribe.ico",
         "--add-data", ".env:.",
         "--add-data", "utils/config.ini:.",
-        "--add-data", "service/replacements.txt:.",
+        "--add-data", "data/replacements.txt:.",
         "main.py"
     ])
 

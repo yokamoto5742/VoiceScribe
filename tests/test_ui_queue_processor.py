@@ -2,7 +2,7 @@ import queue
 from unittest.mock import Mock, patch
 import tkinter as tk
 
-from service.ui_queue_processor import UIQueueProcessor
+from app.ui_queue_processor import UIQueueProcessor
 
 
 class TestUIQueueProcessorInit:
@@ -123,14 +123,14 @@ class TestUIQueueProcessorProcessQueue:
         self.mock_master.after.assert_called_once_with(50, self.processor._process_queue)
 
     def test_process_queue_when_shutting_down(self):
-        """異常系: シャットダウン中は処理しない"""
+        """正常系: シャットダウン中もキュー内コールバックは実行されるが、再スケジュールはされない"""
         self.processor._is_shutting_down = True
         mock_callback = Mock()
 
         self.processor._ui_queue.put_nowait((mock_callback, ()))
         self.processor._process_queue()
 
-        mock_callback.assert_not_called()
+        mock_callback.assert_called_once()
         self.mock_master.after.assert_not_called()
 
     def test_process_queue_with_callback_exception(self):

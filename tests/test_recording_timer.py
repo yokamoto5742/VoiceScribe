@@ -1,22 +1,24 @@
-import configparser
 import time
 from unittest.mock import Mock
 import tkinter as tk
 
 from service.recording_timer import RecordingTimer
-from service.ui_queue_processor import UIQueueProcessor
+from app.ui_queue_processor import UIQueueProcessor
+from tests.conftest import dict_to_app_config
+
+
+def _make_config(auto_stop_timer: str = '60'):
+    return dict_to_app_config({'RECORDING': {'AUTO_STOP_TIMER': auto_stop_timer}})
 
 
 class TestRecordingTimerInit:
     """RecordingTimer初期化のテストクラス"""
 
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
 
-        self.mock_config = configparser.ConfigParser()
-        self.mock_config['RECORDING'] = {'AUTO_STOP_TIMER': '60'}
+        self.mock_config = _make_config('60')
 
         self.mock_ui_processor = Mock(spec=UIQueueProcessor)
         self.mock_ui_processor.is_ui_valid.return_value = True
@@ -51,13 +53,11 @@ class TestRecordingTimerStart:
     """RecordingTimerのstart()メソッドのテストクラス"""
 
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
         self.mock_master.after.return_value = "after_id_123"
 
-        self.mock_config = configparser.ConfigParser()
-        self.mock_config['RECORDING'] = {'AUTO_STOP_TIMER': '10'}
+        self.mock_config = _make_config('10')
 
         self.mock_ui_processor = Mock(spec=UIQueueProcessor)
         self.mock_ui_processor.is_ui_valid.return_value = True
@@ -93,7 +93,7 @@ class TestRecordingTimerStart:
 
     def test_start_with_60_second_timer(self):
         """正常系: 60秒タイマーの開始"""
-        self.mock_config['RECORDING']['AUTO_STOP_TIMER'] = '60'
+        self.timer.config.raw_config['RECORDING']['AUTO_STOP_TIMER'] = '60'
 
         self.timer.start()
 
@@ -122,13 +122,11 @@ class TestRecordingTimerCancel:
     """RecordingTimerのcancel()メソッドのテストクラス"""
 
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
         self.mock_master.after.return_value = "after_id_123"
 
-        self.mock_config = configparser.ConfigParser()
-        self.mock_config['RECORDING'] = {'AUTO_STOP_TIMER': '10'}
+        self.mock_config = _make_config('10')
 
         self.mock_ui_processor = Mock(spec=UIQueueProcessor)
         self.mock_ui_processor.is_ui_valid.return_value = True
@@ -151,7 +149,6 @@ class TestRecordingTimerCancel:
         self.timer.start()
         self.timer.cancel()
 
-        # タイマーキャンセル後、少し待機してスレッドが終了するのを確認
         time.sleep(0.1)
 
         assert self.timer._recording_timer is not None
@@ -171,7 +168,6 @@ class TestRecordingTimerCancel:
 
         self.timer.cancel()
 
-        # タイマーキャンセル後、少し待機
         time.sleep(0.1)
 
         assert not self.timer._recording_timer.is_alive()  # type: ignore
@@ -184,7 +180,6 @@ class TestRecordingTimerCancel:
 
         self.timer.cancel()
 
-        # タイマーキャンセル後、少し待機
         time.sleep(0.1)
 
         assert not self.timer._recording_timer.is_alive()  # type: ignore
@@ -195,12 +190,10 @@ class TestRecordingTimerAutoStop:
     """RecordingTimerの自動停止機能のテストクラス"""
 
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
 
-        self.mock_config = configparser.ConfigParser()
-        self.mock_config['RECORDING'] = {'AUTO_STOP_TIMER': '1'}
+        self.mock_config = _make_config('1')
 
         self.mock_ui_processor = Mock(spec=UIQueueProcessor)
         self.mock_ui_processor.is_ui_valid.return_value = True
@@ -257,12 +250,10 @@ class TestRecordingTimerFiveSecondNotification:
     """RecordingTimerの5秒前通知のテストクラス"""
 
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
 
-        self.mock_config = configparser.ConfigParser()
-        self.mock_config['RECORDING'] = {'AUTO_STOP_TIMER': '10'}
+        self.mock_config = _make_config('10')
 
         self.mock_ui_processor = Mock(spec=UIQueueProcessor)
         self.mock_ui_processor.is_ui_valid.return_value = True
@@ -328,13 +319,11 @@ class TestRecordingTimerCleanup:
     """RecordingTimerのcleanup()メソッドのテストクラス"""
 
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
         self.mock_master.after.return_value = "after_id_123"
 
-        self.mock_config = configparser.ConfigParser()
-        self.mock_config['RECORDING'] = {'AUTO_STOP_TIMER': '10'}
+        self.mock_config = _make_config('10')
 
         self.mock_ui_processor = Mock(spec=UIQueueProcessor)
         self.mock_ui_processor.is_ui_valid.return_value = True
@@ -357,7 +346,6 @@ class TestRecordingTimerCleanup:
         self.timer.start()
         self.timer.cleanup()
 
-        # タイマーキャンセル後、少し待機
         time.sleep(0.1)
 
         assert not self.timer._recording_timer.is_alive()  # type: ignore

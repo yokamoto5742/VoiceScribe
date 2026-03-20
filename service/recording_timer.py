@@ -1,10 +1,10 @@
-import configparser
 import logging
 import threading
 import tkinter as tk
 from typing import Callable, Optional
 
-from service.ui_queue_processor import UIQueueProcessor
+from app.ui_queue_processor import UIQueueProcessor
+from utils.app_config import AppConfig
 
 
 class RecordingTimer:
@@ -12,7 +12,7 @@ class RecordingTimer:
     def __init__(
             self,
             master: tk.Tk,
-            config: configparser.ConfigParser,
+            config: AppConfig,
             ui_processor: UIQueueProcessor,
             notification_callback: Callable,
             is_recording_callback: Callable[[], bool],
@@ -29,9 +29,9 @@ class RecordingTimer:
         self._five_second_timer: Optional[str] = None
         self._five_second_notification_shown: bool = False
 
-    def start(self):
-        """タイマーを開始"""
-        auto_stop_timer = int(self.config['RECORDING']['AUTO_STOP_TIMER'])
+    def start(self) -> None:
+        """タイマーを開始する"""
+        auto_stop_timer = self.config.auto_stop_timer
         self._recording_timer = threading.Timer(auto_stop_timer, self._auto_stop_triggered)
         self._recording_timer.start()
 
@@ -42,8 +42,8 @@ class RecordingTimer:
                 self._show_five_second_notification
             )
 
-    def cancel(self):
-        """タイマーをキャンセル"""
+    def cancel(self) -> None:
+        """タイマーをキャンセルする"""
         if self._recording_timer and self._recording_timer.is_alive():
             self._recording_timer.cancel()
 
@@ -55,30 +55,30 @@ class RecordingTimer:
                 pass
             self._five_second_timer = None
 
-    def _auto_stop_triggered(self):
+    def _auto_stop_triggered(self) -> None:
         self.ui_processor.schedule_callback(self._auto_stop_ui)
 
-    def _auto_stop_ui(self):
+    def _auto_stop_ui(self) -> None:
         try:
-            self.show_notification("自動停止", "アプリケーションを終了します")
+            self.show_notification('自動停止', 'アプリケーションを終了します')
             self.on_auto_stop()
             if self.ui_processor.is_ui_valid():
                 self.master.after(1000, self.master.quit)
         except Exception as e:
-            logging.error(f"自動停止処理中にエラー: {str(e)}")
+            logging.error(f'自動停止処理中にエラー: {str(e)}')
 
-    def _show_five_second_notification(self):
+    def _show_five_second_notification(self) -> None:
         try:
             if self.is_recording() and not self._five_second_notification_shown:
                 if self.ui_processor.is_ui_valid():
                     self.master.lift()
                     self.master.attributes('-topmost', True)
                     self.master.attributes('-topmost', False)
-                    self.show_notification("自動停止", "あと5秒で音声入力を停止します")
+                    self.show_notification('自動停止', 'あと5秒で音声入力を停止します')
                     self._five_second_notification_shown = True
         except Exception as e:
-            logging.error(f"通知表示中にエラー: {str(e)}")
+            logging.error(f'通知表示中にエラー: {str(e)}')
 
-    def cleanup(self):
-        """リソースをクリーンアップ"""
+    def cleanup(self) -> None:
+        """リソースをクリーンアップする"""
         self.cancel()

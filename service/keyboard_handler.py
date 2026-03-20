@@ -5,11 +5,15 @@ from typing import Callable
 import keyboard
 
 
+from __future__ import annotations
+
+from utils.app_config import AppConfig  # noqa: F401 (型アノテーション用)
+
 class KeyboardHandler:
     def __init__(
             self,
             master: tk.Tk,
-            config: configparser.ConfigParser,
+            config: 'AppConfig',
             toggle_recording_callback: Callable,
             toggle_punctuation_callback: Callable,
             reload_audio_callback: Callable,
@@ -26,22 +30,22 @@ class KeyboardHandler:
     def setup_keyboard_listeners(self):
         try:
             keyboard.on_press_key(
-                self.config['KEYS']['TOGGLE_RECORDING'],
+                self.config.toggle_recording_key,
                 self._handle_toggle_recording_key
             )
 
             keyboard.on_press_key(
-                self.config['KEYS']['EXIT_APP'],
+                self.config.exit_app_key,
                 self._handle_exit_key
             )
 
             keyboard.on_press_key(
-                self.config['KEYS']['TOGGLE_PUNCTUATION'],
+                self.config.toggle_punctuation_key,
                 self._handle_toggle_punctuation_key
             )
 
             keyboard.on_press_key(
-                self.config['KEYS']['RELOAD_AUDIO'],
+                self.config.reload_audio_key,
                 self._handle_reload_audio_key
             )
 

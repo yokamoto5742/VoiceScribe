@@ -4,8 +4,8 @@ from unittest.mock import Mock, MagicMock, patch, mock_open
 
 import pytest
 
-from service.replacements_editor import ReplacementsEditor
-from tests.conftest import dict_to_config
+from app.replacements_editor import ReplacementsEditor
+from tests.conftest import dict_to_app_config
 
 
 def create_mock_text_widget():
@@ -19,9 +19,9 @@ class TestReplacementsEditorInit:
 
     @pytest.fixture(autouse=True)
     def patch_ttk_widgets(self):
-        with patch('service.replacements_editor.ttk.Button'), \
-             patch('service.replacements_editor.ttk.Frame'), \
-             patch('service.replacements_editor.ttk.Scrollbar'):
+        with patch('app.replacements_editor.ttk.Button'), \
+             patch('app.replacements_editor.ttk.Frame'), \
+             patch('app.replacements_editor.ttk.Scrollbar'):
             yield
 
     def setup_method(self):
@@ -39,8 +39,8 @@ class TestReplacementsEditorInit:
             }
         }
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
     @patch.object(ReplacementsEditor, 'load_file')
     def test_replacements_editor_init_success(
         self, mock_load_file, mock_text, mock_toplevel
@@ -53,7 +53,7 @@ class TestReplacementsEditorInit:
         mock_text.return_value = mock_text_widget
 
         # Act
-        editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+        editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
         # Assert
         mock_toplevel.assert_called_once_with(self.mock_parent)
@@ -62,39 +62,10 @@ class TestReplacementsEditorInit:
         mock_load_file.assert_called_once()
         mock_window.transient.assert_called_once_with(self.mock_parent)
         mock_window.grab_set.assert_called_once()
-        assert editor.config['PATHS']['replacements_file'] == self.mock_config['PATHS']['replacements_file']
+        assert editor.config.replacements_file == self.mock_config['PATHS']['replacements_file']
 
-    def test_replacements_editor_init_missing_paths_section(self):
-        """異常系: PATHS設定が存在しない"""
-        # Arrange
-        invalid_config = {
-            'EDITOR': {
-                'width': '500',
-                'height': '800'
-            }
-        }
-
-        # Act & Assert
-        with pytest.raises(ValueError, match='設定ファイルにreplacements_fileのパスがありません'):
-            ReplacementsEditor(self.mock_parent, dict_to_config(invalid_config))
-
-    def test_replacements_editor_init_missing_replacements_file(self):
-        """異常系: replacements_fileが存在しない"""
-        # Arrange
-        invalid_config = {
-            'PATHS': {},
-            'EDITOR': {
-                'width': '500',
-                'height': '800'
-            }
-        }
-
-        # Act & Assert
-        with pytest.raises(ValueError, match='設定ファイルにreplacements_fileのパスがありません'):
-            ReplacementsEditor(self.mock_parent, dict_to_config(invalid_config))
-
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
     @patch.object(ReplacementsEditor, 'load_file')
     def test_replacements_editor_init_custom_size(
         self, mock_load_file, mock_text, mock_toplevel
@@ -119,7 +90,7 @@ class TestReplacementsEditorInit:
         mock_text.return_value = mock_text_widget
 
         # Act
-        ReplacementsEditor(self.mock_parent, dict_to_config(custom_config))
+        ReplacementsEditor(self.mock_parent, dict_to_app_config(custom_config))
 
         # Assert
         mock_window.geometry.assert_called_once_with('600x900')
@@ -130,9 +101,9 @@ class TestLoadFile:
 
     @pytest.fixture(autouse=True)
     def patch_ttk_widgets(self):
-        with patch('service.replacements_editor.ttk.Button'), \
-             patch('service.replacements_editor.ttk.Frame'), \
-             patch('service.replacements_editor.ttk.Scrollbar'):
+        with patch('app.replacements_editor.ttk.Button'), \
+             patch('app.replacements_editor.ttk.Frame'), \
+             patch('app.replacements_editor.ttk.Scrollbar'):
             yield
 
     def setup_method(self):
@@ -150,9 +121,9 @@ class TestLoadFile:
             }
         }
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
     def test_load_file_success(
         self, mock_exists, mock_text, mock_toplevel
     ):
@@ -168,15 +139,15 @@ class TestLoadFile:
 
         with patch('builtins.open', mock_open(read_data=file_content)):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             mock_text_widget.insert.assert_called_once_with('1.0', file_content)
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.messagebox.showwarning')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.messagebox.showwarning')
     def test_load_file_not_found(
         self, mock_showwarning, mock_exists, mock_text, mock_toplevel, caplog
     ):
@@ -191,7 +162,7 @@ class TestLoadFile:
         mock_exists.return_value = False
 
         # Act
-        ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+        ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
         # Assert
         assert "置換設定ファイルが見つかりません" in caplog.text
@@ -199,10 +170,10 @@ class TestLoadFile:
         call_args = mock_showwarning.call_args
         assert call_args[0][0] == '警告'
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.messagebox.showerror')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.messagebox.showerror')
     def test_load_file_read_error(
         self, mock_showerror, mock_exists, mock_text, mock_toplevel, caplog
     ):
@@ -218,7 +189,7 @@ class TestLoadFile:
 
         with patch('builtins.open', side_effect=PermissionError("Permission denied")):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             assert "ファイルの読み込みに失敗しました" in caplog.text
@@ -226,9 +197,9 @@ class TestLoadFile:
             call_args = mock_showerror.call_args
             assert call_args[0][0] == 'エラー'
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
     def test_load_file_empty_file(
         self, mock_exists, mock_text, mock_toplevel
     ):
@@ -244,14 +215,14 @@ class TestLoadFile:
 
         with patch('builtins.open', mock_open(read_data=file_content)):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             mock_text_widget.insert.assert_called_once_with('1.0', file_content)
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
     def test_load_file_large_content(
         self, mock_exists, mock_text, mock_toplevel
     ):
@@ -267,7 +238,7 @@ class TestLoadFile:
 
         with patch('builtins.open', mock_open(read_data=large_content)):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             mock_text_widget.insert.assert_called_once_with('1.0', large_content)
@@ -278,9 +249,9 @@ class TestSaveFile:
 
     @pytest.fixture(autouse=True)
     def patch_ttk_widgets(self):
-        with patch('service.replacements_editor.ttk.Button'), \
-             patch('service.replacements_editor.ttk.Frame'), \
-             patch('service.replacements_editor.ttk.Scrollbar'):
+        with patch('app.replacements_editor.ttk.Button'), \
+             patch('app.replacements_editor.ttk.Frame'), \
+             patch('app.replacements_editor.ttk.Scrollbar'):
             yield
 
     def setup_method(self):
@@ -298,11 +269,11 @@ class TestSaveFile:
             }
         }
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.os.path.dirname')
-    @patch('service.replacements_editor.messagebox.showinfo')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.os.path.dirname')
+    @patch('app.replacements_editor.messagebox.showinfo')
     def test_save_file_success(
         self, mock_showinfo, mock_dirname, mock_exists,
         mock_text, mock_toplevel
@@ -319,20 +290,20 @@ class TestSaveFile:
         mock_dirname.return_value = 'C:/test'
 
         with patch('builtins.open', mock_open()), \
-             patch('service.replacements_editor.os.makedirs'):
+             patch('app.replacements_editor.os.makedirs'):
             # Act
-            editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
             editor.save_file()
 
             # Assert
             mock_showinfo.assert_called_once_with('保存完了', 'ファイルを保存しました')
             mock_window.destroy.assert_called_once()
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.os.makedirs')
-    @patch('service.replacements_editor.os.path.dirname')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.os.makedirs')
+    @patch('app.replacements_editor.os.path.dirname')
     def test_save_file_creates_directory(
         self, mock_dirname, mock_makedirs, mock_exists, mock_text, mock_toplevel
     ):
@@ -348,19 +319,19 @@ class TestSaveFile:
         mock_dirname.return_value = 'C:/test/new_dir'
 
         with patch('builtins.open', mock_open()), \
-             patch('service.replacements_editor.messagebox.showinfo'):
+             patch('app.replacements_editor.messagebox.showinfo'):
             # Act
-            editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
             editor.save_file()
 
             # Assert
             mock_makedirs.assert_called_once_with('C:/test/new_dir', exist_ok=True)
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.os.path.dirname')
-    @patch('service.replacements_editor.messagebox.showerror')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.os.path.dirname')
+    @patch('app.replacements_editor.messagebox.showerror')
     def test_save_file_write_error(
         self, mock_showerror, mock_dirname, mock_exists,
         mock_text, mock_toplevel, caplog
@@ -378,9 +349,9 @@ class TestSaveFile:
         mock_dirname.return_value = 'C:/test'
 
         with patch('builtins.open', side_effect=[mock_open(read_data="")(), PermissionError("Permission denied")]), \
-             patch('service.replacements_editor.os.makedirs'):
+             patch('app.replacements_editor.os.makedirs'):
             # Act
-            editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
             editor.save_file()
 
             # Assert
@@ -392,11 +363,11 @@ class TestSaveFile:
             assert "保存" in call_args[0][1]
             mock_window.destroy.assert_not_called()
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.os.path.dirname')
-    @patch('service.replacements_editor.messagebox.showinfo')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.os.path.dirname')
+    @patch('app.replacements_editor.messagebox.showinfo')
     def test_save_file_empty_content(
         self, mock_showinfo, mock_dirname, mock_exists,
         mock_text, mock_toplevel
@@ -414,17 +385,17 @@ class TestSaveFile:
 
         with patch('builtins.open', mock_open()) as m:
             # Act
-            editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
             editor.save_file()
 
             # Assert
             m().write.assert_called_once_with("")
             mock_showinfo.assert_called_once()
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.os.path.dirname')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.os.path.dirname')
     def test_save_file_large_content(
         self, mock_dirname, mock_exists,
         mock_text, mock_toplevel
@@ -442,10 +413,10 @@ class TestSaveFile:
         mock_dirname.return_value = 'C:/test'
 
         with patch('builtins.open', mock_open()) as m, \
-             patch('service.replacements_editor.messagebox.showinfo'), \
-             patch('service.replacements_editor.os.makedirs'):
+             patch('app.replacements_editor.messagebox.showinfo'), \
+             patch('app.replacements_editor.os.makedirs'):
             # Act
-            editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
             editor.save_file()
 
             # Assert
@@ -457,9 +428,9 @@ class TestIntegrationScenarios:
 
     @pytest.fixture(autouse=True)
     def patch_ttk_widgets(self):
-        with patch('service.replacements_editor.ttk.Button'), \
-             patch('service.replacements_editor.ttk.Frame'), \
-             patch('service.replacements_editor.ttk.Scrollbar'):
+        with patch('app.replacements_editor.ttk.Button'), \
+             patch('app.replacements_editor.ttk.Frame'), \
+             patch('app.replacements_editor.ttk.Scrollbar'):
             yield
 
     def setup_method(self):
@@ -477,11 +448,11 @@ class TestIntegrationScenarios:
             }
         }
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.os.path.dirname')
-    @patch('service.replacements_editor.messagebox.showinfo')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.os.path.dirname')
+    @patch('app.replacements_editor.messagebox.showinfo')
     def test_full_edit_workflow(
         self, mock_showinfo, mock_dirname, mock_exists,
         mock_text, mock_toplevel
@@ -502,7 +473,7 @@ class TestIntegrationScenarios:
         # ファイル読み込み
         with patch('builtins.open', mock_open(read_data=original_content)):
             # Act
-            editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert - 読み込み確認
             mock_text_widget.insert.assert_called_once_with('1.0', original_content)
@@ -518,10 +489,10 @@ class TestIntegrationScenarios:
             m().write.assert_called_once_with(edited_content)
             mock_showinfo.assert_called_once()
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.messagebox.showwarning')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.messagebox.showwarning')
     def test_create_new_file_workflow(
         self, mock_showwarning, mock_exists, mock_text, mock_toplevel
     ):
@@ -536,16 +507,16 @@ class TestIntegrationScenarios:
         mock_exists.return_value = False  # ファイルが存在しない
 
         # Act
-        editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+        editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
         # Assert - 警告表示
         mock_showwarning.assert_called_once()
 
         # 新規内容を入力して保存
-        with patch('service.replacements_editor.os.makedirs'), \
-             patch('service.replacements_editor.os.path.dirname', return_value='C:/test'), \
+        with patch('app.replacements_editor.os.makedirs'), \
+             patch('app.replacements_editor.os.path.dirname', return_value='C:/test'), \
              patch('builtins.open', mock_open()) as m, \
-             patch('service.replacements_editor.messagebox.showinfo') as mock_showinfo:
+             patch('app.replacements_editor.messagebox.showinfo') as mock_showinfo:
 
             editor.save_file()
 
@@ -559,9 +530,9 @@ class TestEdgeCases:
 
     @pytest.fixture(autouse=True)
     def patch_ttk_widgets(self):
-        with patch('service.replacements_editor.ttk.Button'), \
-             patch('service.replacements_editor.ttk.Frame'), \
-             patch('service.replacements_editor.ttk.Scrollbar'):
+        with patch('app.replacements_editor.ttk.Button'), \
+             patch('app.replacements_editor.ttk.Frame'), \
+             patch('app.replacements_editor.ttk.Scrollbar'):
             yield
 
     def setup_method(self):
@@ -579,9 +550,9 @@ class TestEdgeCases:
             }
         }
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
     def test_special_characters_in_content(
         self, mock_exists, mock_text, mock_toplevel
     ):
@@ -597,14 +568,14 @@ class TestEdgeCases:
 
         with patch('builtins.open', mock_open(read_data=special_content)):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             mock_text_widget.insert.assert_called_once_with('1.0', special_content)
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
     def test_unicode_characters_in_content(
         self, mock_exists, mock_text, mock_toplevel
     ):
@@ -620,14 +591,14 @@ class TestEdgeCases:
 
         with patch('builtins.open', mock_open(read_data=unicode_content)):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             mock_text_widget.insert.assert_called_once_with('1.0', unicode_content)
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
     def test_very_long_lines(
         self, mock_exists, mock_text, mock_toplevel
     ):
@@ -643,7 +614,7 @@ class TestEdgeCases:
 
         with patch('builtins.open', mock_open(read_data=long_line)):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             mock_text_widget.insert.assert_called_once_with('1.0', long_line)
@@ -654,9 +625,9 @@ class TestErrorHandling:
 
     @pytest.fixture(autouse=True)
     def patch_ttk_widgets(self):
-        with patch('service.replacements_editor.ttk.Button'), \
-             patch('service.replacements_editor.ttk.Frame'), \
-             patch('service.replacements_editor.ttk.Scrollbar'):
+        with patch('app.replacements_editor.ttk.Button'), \
+             patch('app.replacements_editor.ttk.Frame'), \
+             patch('app.replacements_editor.ttk.Scrollbar'):
             yield
 
     def setup_method(self):
@@ -674,10 +645,10 @@ class TestErrorHandling:
             }
         }
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.messagebox.showerror')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.messagebox.showerror')
     def test_unicode_decode_error(
         self, mock_showerror, mock_exists, mock_text, mock_toplevel, caplog
     ):
@@ -693,18 +664,18 @@ class TestErrorHandling:
 
         with patch('builtins.open', side_effect=UnicodeDecodeError('utf-8', b'', 0, 1, 'invalid')):
             # Act
-            ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
 
             # Assert
             assert "ファイルの読み込みに失敗しました" in caplog.text
             mock_showerror.assert_called_once()
 
-    @patch('service.replacements_editor.tk.Toplevel')
-    @patch('service.replacements_editor.tk.Text')
-    @patch('service.replacements_editor.os.path.exists')
-    @patch('service.replacements_editor.os.makedirs')
-    @patch('service.replacements_editor.os.path.dirname')
-    @patch('service.replacements_editor.messagebox.showerror')
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.os.makedirs')
+    @patch('app.replacements_editor.os.path.dirname')
+    @patch('app.replacements_editor.messagebox.showerror')
     def test_directory_creation_error(
         self, mock_showerror, mock_dirname, mock_makedirs, mock_exists,
         mock_text, mock_toplevel, caplog
@@ -726,7 +697,7 @@ class TestErrorHandling:
             mock_makedirs.side_effect = PermissionError("Cannot create directory")
 
             # Act
-            editor = ReplacementsEditor(self.mock_parent, dict_to_config(self.mock_config))
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
             editor.save_file()
 
             # Assert

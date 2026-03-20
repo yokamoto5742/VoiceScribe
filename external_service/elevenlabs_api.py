@@ -1,4 +1,3 @@
-import configparser
 import logging
 import os
 import traceback
@@ -7,14 +6,15 @@ from typing import Optional
 import httpx
 from elevenlabs.client import ElevenLabs
 
+from utils.app_config import AppConfig
 from utils.env_loader import load_env_variables
 
 
 def setup_elevenlabs_client() -> ElevenLabs:
     env_vars = load_env_variables()
-    api_key = env_vars.get("ELEVENLABS_API_KEY")
+    api_key = env_vars.get('ELEVENLABS_API_KEY')
     if not api_key:
-        raise ValueError("ELEVENLABS_API_KEYが未設定です")
+        raise ValueError('ELEVENLABS_API_KEYが未設定です')
     # 接続タイムアウトを短く設定し、ハング時に速やかにエラーを返す
     # ElevenLabs SDKはfloatのみ受け付けるためhttpx_client経由で設定
     timeout = httpx.Timeout(connect=15.0, read=240.0, write=30.0, pool=5.0)
@@ -24,14 +24,13 @@ def setup_elevenlabs_client() -> ElevenLabs:
 
 def validate_audio_file(file_path: str) -> tuple[bool, Optional[str]]:
     if not file_path:
-        return False, "音声ファイルパスが未指定です"
+        return False, '音声ファイルパスが未指定です'
 
     if not os.path.exists(file_path):
-        return False, f"音声ファイルが存在しません: {file_path}"
+        return False, f'音声ファイルが存在しません: {file_path}'
 
-    file_size = os.path.getsize(file_path)
-    if file_size == 0:
-        return False, "音声ファイルサイズが0バイトです"
+    if os.path.getsize(file_path) == 0:
+        return False, '音声ファイルサイズが0バイトです'
 
     return True, None
 
@@ -39,7 +38,7 @@ def validate_audio_file(file_path: str) -> tuple[bool, Optional[str]]:
 def convert_response_to_text(response) -> Optional[str]:
     """APIレスポンスをテキストに変換"""
     if response is None:
-        logging.error("APIからのレスポンスが空です")
+        logging.error('APIからのレスポンスが空です')
         return None
 
     try:
@@ -50,35 +49,35 @@ def convert_response_to_text(response) -> Optional[str]:
         elif hasattr(response, '__str__'):
             return str(response)
         else:
-            logging.error(f"予期しないレスポンス形式: {type(response)}")
+            logging.error(f'予期しないレスポンス形式: {type(response)}')
             return None
     except Exception as e:
-        logging.error(f"レスポンス変換中の予期しないエラー: {str(e)}")
-        logging.debug(f"レスポンス変換エラー詳細: {traceback.format_exc()}")
+        logging.error(f'レスポンス変換中の予期しないエラー: {str(e)}')
+        logging.debug(f'レスポンス変換エラー詳細: {traceback.format_exc()}')
         return None
 
 
 def transcribe_audio(
         audio_file_path: str,
-        config: configparser.ConfigParser,
+        config: AppConfig,
         client: ElevenLabs
 ) -> Optional[str]:
     is_valid, error_msg = validate_audio_file(audio_file_path)
     if not is_valid:
-        logging.warning(error_msg) if "未指定" in error_msg else logging.error(error_msg)
+        logging.warning(error_msg) if '未指定' in str(error_msg) else logging.error(error_msg)
         return None
 
     try:
-        logging.info("ファイル読み込み開始")
-        with open(audio_file_path, "rb") as file:
+        logging.info('ファイル読み込み開始')
+        with open(audio_file_path, 'rb') as file:
             file_content = file.read()
-            logging.info(f"ファイル読み込み完了: {len(file_content)} bytes")
+            logging.info(f'ファイル読み込み完了: {len(file_content)} bytes')
 
             transcription = client.speech_to_text.convert(
                 file=(os.path.basename(audio_file_path), file_content),
-                model_id=config['ELEVENLABS']['MODEL'],
-                language_code=config['ELEVENLABS']['LANGUAGE'],
-                tag_audio_events=config.getboolean('ELEVENLABS', 'tag_audio_events', fallback=False)
+                model_id=config.elevenlabs_model,
+                language_code=config.elevenlabs_language,
+                tag_audio_events=config.tag_audio_events
             )
 
         text_result = convert_response_to_text(transcription)
@@ -86,35 +85,34 @@ def transcribe_audio(
             return None
 
         if len(text_result) == 0:
-            logging.warning("文字起こし結果が空です")
-            return ""
+            logging.warning('文字起こし結果が空です')
+            return ''
 
-        logging.info(f"文字起こし完了: {len(text_result)}文字")
+        logging.info(f'文字起こし完了: {len(text_result)}文字')
         return text_result
 
     except httpx.ConnectTimeout as e:
-        logging.error(f"API接続タイムアウト (15秒): {str(e)}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
+        logging.error(f'API接続タイムアウト (15秒): {str(e)}')
+        logging.debug(f'詳細: {traceback.format_exc()}')
         return None
     except httpx.TimeoutException as e:
-        logging.error(f"API通信タイムアウト: {str(e)}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
+        logging.error(f'API通信タイムアウト: {str(e)}')
+        logging.debug(f'詳細: {traceback.format_exc()}')
         return None
     except FileNotFoundError as e:
-        logging.error(f"ファイルが見つかりません: {str(e)}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
+        logging.error(f'ファイルが見つかりません: {str(e)}')
+        logging.debug(f'詳細: {traceback.format_exc()}')
         return None
     except PermissionError as e:
-        logging.error(f"ファイルアクセス権限エラー: {str(e)}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
+        logging.error(f'ファイルアクセス権限エラー: {str(e)}')
+        logging.debug(f'詳細: {traceback.format_exc()}')
         return None
     except OSError as e:
-        logging.error(f"OS関連エラー: {str(e)}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
+        logging.error(f'OS関連エラー: {str(e)}')
+        logging.debug(f'詳細: {traceback.format_exc()}')
         return None
-
     except Exception as e:
-        logging.error(f"文字起こしエラー: {str(e)}")
-        logging.error(f"エラーのタイプ: {type(e).__name__}")
-        logging.debug(f"詳細: {traceback.format_exc()}")
+        logging.error(f'文字起こしエラー: {str(e)}')
+        logging.error(f'エラーのタイプ: {type(e).__name__}')
+        logging.debug(f'詳細: {traceback.format_exc()}')
         return None
