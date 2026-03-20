@@ -1,3 +1,4 @@
+from __future__ import annotations
 import configparser
 import logging
 import tkinter as tk
@@ -5,7 +6,6 @@ from typing import Callable
 import keyboard
 
 
-from __future__ import annotations
 
 from utils.app_config import AppConfig  # noqa: F401 (型アノテーション用)
 
