@@ -8,6 +8,7 @@ import pyaudio
 import pytest
 
 from service.audio_recorder import AudioRecorder, save_audio
+from tests.conftest import dict_to_config
 
 
 class TestAudioRecorderInit:
@@ -30,7 +31,7 @@ class TestAudioRecorderInit:
     def test_audio_recorder_init_success(self, mock_makedirs):
         """正常系: AudioRecorder正常初期化"""
         # Act
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
 
         # Assert
         assert recorder.sample_rate == 16000
@@ -59,7 +60,7 @@ class TestAudioRecorderInit:
         }
 
         # Act
-        recorder = AudioRecorder(custom_config)
+        recorder = AudioRecorder(dict_to_config(custom_config))
 
         # Assert
         assert recorder.sample_rate == 44100
@@ -74,7 +75,7 @@ class TestAudioRecorderInit:
         mock_makedirs.side_effect = None  # 既存ディレクトリでもエラーなし
 
         # Act
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
 
         # Assert
         assert recorder.temp_dir == '/test/temp'
@@ -88,7 +89,7 @@ class TestAudioRecorderInit:
 
         # Act & Assert
         with pytest.raises(PermissionError):
-            AudioRecorder(self.mock_config)
+            AudioRecorder(dict_to_config(self.mock_config))
 
 
 class TestAudioRecorderStartRecording:
@@ -117,7 +118,7 @@ class TestAudioRecorderStartRecording:
         mock_pyaudio_class.return_value = mock_pyaudio_instance
         mock_pyaudio_instance.open.return_value = mock_stream
 
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
 
         # Act
         recorder.start_recording()
@@ -146,7 +147,7 @@ class TestAudioRecorderStartRecording:
         """異常系: PyAudio初期化エラー"""
         # Arrange
         mock_pyaudio_class.side_effect = Exception("PyAudio initialization failed")
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
 
         # Act
         recorder.start_recording()
@@ -165,7 +166,7 @@ class TestAudioRecorderStartRecording:
         mock_pyaudio_class.return_value = mock_pyaudio_instance
         mock_pyaudio_instance.open.side_effect = Exception("Stream open failed")
 
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
 
         # Act
         recorder.start_recording()
@@ -185,7 +186,7 @@ class TestAudioRecorderStartRecording:
         mock_pyaudio_class.return_value = mock_pyaudio_instance
         mock_pyaudio_instance.open.return_value = mock_stream
 
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
 
         # Act
         recorder.start_recording()
@@ -217,7 +218,7 @@ class TestAudioRecorderStopRecording:
     def test_stop_recording_success(self, mock_makedirs):
         """正常系: 録音停止成功"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         
         # モックストリームとPyAudioインスタンスを設定
         mock_stream = Mock()
@@ -244,7 +245,7 @@ class TestAudioRecorderStopRecording:
     def test_stop_recording_no_stream(self, mock_makedirs):
         """境界値: ストリームが存在しない場合"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         recorder.is_recording = True
         recorder.frames = [b'test_data']
 
@@ -260,7 +261,7 @@ class TestAudioRecorderStopRecording:
     def test_stop_recording_stream_error(self, mock_makedirs):
         """異常系: ストリーム停止時のエラー"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         
         mock_stream = Mock()
         mock_stream.stop_stream.side_effect = Exception("Stream stop error")
@@ -272,7 +273,7 @@ class TestAudioRecorderStopRecording:
         recorder.frames = [b'test_data']
 
         # Act
-        frames, sample_rate = recorder.stop_recording()
+        frames, _sample_rate = recorder.stop_recording()
 
         # Assert
         assert recorder.is_recording is False
@@ -284,7 +285,7 @@ class TestAudioRecorderStopRecording:
     def test_stop_recording_pyaudio_terminate_error(self, mock_makedirs):
         """異常系: PyAudio終了時のエラー"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         
         mock_stream = Mock()
         mock_pyaudio = Mock()
@@ -307,7 +308,7 @@ class TestAudioRecorderStopRecording:
     def test_stop_recording_empty_frames(self, mock_makedirs):
         """境界値: 録音データが空の場合"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         recorder.is_recording = True
         recorder.frames = []
 
@@ -340,7 +341,7 @@ class TestAudioRecorderRecord:
     def test_record_success(self, mock_makedirs):
         """正常系: 録音処理成功"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         
         mock_stream = Mock()
         test_data = [b'chunk1', b'chunk2', b'chunk3']
@@ -367,7 +368,7 @@ class TestAudioRecorderRecord:
     def test_record_stream_read_error(self, mock_makedirs):
         """異常系: ストリーム読み取りエラー"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         
         mock_stream = Mock()
         mock_stream.read.side_effect = Exception("Stream read error")
@@ -386,7 +387,7 @@ class TestAudioRecorderRecord:
     def test_record_immediate_stop(self, mock_makedirs):
         """境界値: 即座に停止される場合"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         recorder.is_recording = False  # 開始前に停止状態
 
         # Act
@@ -399,7 +400,7 @@ class TestAudioRecorderRecord:
     def test_record_no_stream(self, mock_makedirs):
         """異常系: ストリームが存在しない場合"""
         # Arrange
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         recorder.stream = None
         recorder.is_recording = True
 
@@ -422,7 +423,7 @@ class TestSaveAudio:
             }
         }
         self.test_frames = [b'frame1', b'frame2', b'frame3']
-        self.sample_rate = 16000
+        self._sample_rate = 16000
 
     @patch('service.audio_recorder.os.makedirs')
     @patch('service.audio_recorder.os.path.exists')
@@ -444,7 +445,7 @@ class TestSaveAudio:
         mock_pyaudio_instance.get_sample_size.return_value = 2
 
         # Act
-        result = save_audio(self.test_frames, self.sample_rate, self.mock_config)
+        result = save_audio(self.test_frames, self._sample_rate, dict_to_config(self.mock_config))
 
         # Assert
         expected_path = os.path.join('/test/temp', 'audio_20240101_120000.wav')
@@ -476,7 +477,7 @@ class TestSaveAudio:
         mock_pyaudio_instance.get_sample_size.return_value = 2
 
         # Act
-        result = save_audio(self.test_frames, self.sample_rate, self.mock_config)
+        result = save_audio(self.test_frames, self._sample_rate, dict_to_config(self.mock_config))
 
         # Assert
         mock_makedirs.assert_called_once_with('/test/temp')
@@ -493,7 +494,7 @@ class TestSaveAudio:
         mock_makedirs.side_effect = PermissionError("Permission denied")
 
         # Act
-        result = save_audio(self.test_frames, self.sample_rate, self.mock_config)
+        result = save_audio(self.test_frames, self._sample_rate, dict_to_config(self.mock_config))
 
         # Assert
         assert result is None
@@ -510,7 +511,7 @@ class TestSaveAudio:
         mock_wave_open.side_effect = Exception("Wave file creation error")
 
         # Act
-        result = save_audio(self.test_frames, self.sample_rate, self.mock_config)
+        result = save_audio(self.test_frames, self._sample_rate, dict_to_config(self.mock_config))
 
         # Assert
         assert result is None
@@ -535,7 +536,7 @@ class TestSaveAudio:
         mock_pyaudio_instance.get_sample_size.return_value = 2
 
         # Act
-        result = save_audio([], self.sample_rate, self.mock_config)
+        result = save_audio([], self._sample_rate, dict_to_config(self.mock_config))
 
         # Assert
         assert result is not None
@@ -562,7 +563,7 @@ class TestSaveAudio:
         mock_pyaudio_instance.get_sample_size.return_value = 2
 
         # Act
-        result = save_audio(large_frames, self.sample_rate, self.mock_config)
+        result = save_audio(large_frames, self._sample_rate, dict_to_config(self.mock_config))
 
         # Assert
         assert result is not None
@@ -593,7 +594,7 @@ class TestSaveAudio:
         mock_pyaudio_instance.get_sample_size.return_value = 2
 
         # Act
-        result = save_audio(self.test_frames, self.sample_rate, stereo_config)
+        result = save_audio(self.test_frames, self._sample_rate, dict_to_config(stereo_config))
 
         # Assert
         assert result is not None
@@ -619,7 +620,7 @@ class TestSaveAudio:
         mock_pyaudio_instance.get_sample_size.return_value = 2
 
         # Act
-        result = save_audio(self.test_frames, 44100, self.mock_config)
+        result = save_audio(self.test_frames, 44100, dict_to_config(self.mock_config))
 
         # Assert
         assert result is not None
@@ -629,13 +630,13 @@ class TestSaveAudio:
         """ログ出力の確認"""
         # Arrange
         caplog.set_level(logging.INFO)
-        
+
         with patch('service.audio_recorder.os.makedirs'), \
              patch('service.audio_recorder.os.path.exists', return_value=True), \
              patch('service.audio_recorder.wave.open') as mock_wave_open, \
              patch('service.audio_recorder.pyaudio.PyAudio') as mock_pyaudio_class, \
              patch('service.audio_recorder.datetime') as mock_datetime:
-            
+
             mock_datetime.now.return_value.strftime.return_value = "20240101_120000"
             mock_wave_file = Mock()
             mock_wave_open.return_value.__enter__.return_value = mock_wave_file
@@ -644,7 +645,7 @@ class TestSaveAudio:
             mock_pyaudio_instance.get_sample_size.return_value = 2
 
             # Act
-            result = save_audio(self.test_frames, self.sample_rate, self.mock_config)
+            result = save_audio(self.test_frames, self._sample_rate, dict_to_config(self.mock_config))
 
             # Assert
             assert result is not None
@@ -695,7 +696,7 @@ class TestIntegrationScenarios:
         mock_wave_open.return_value.__enter__.return_value = mock_wave_file
 
         # Act
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         
         # 録音開始
         recorder.start_recording()
@@ -708,7 +709,7 @@ class TestIntegrationScenarios:
         frames, sample_rate = recorder.stop_recording()
         
         # ファイル保存
-        saved_path = save_audio(frames, sample_rate, self.mock_config)
+        saved_path = save_audio(frames, sample_rate, dict_to_config(self.mock_config))
 
         # Assert
         assert frames == test_audio_data
@@ -733,7 +734,7 @@ class TestIntegrationScenarios:
         mock_pyaudio_class.side_effect = Exception("PyAudio not available")
         
         # Act
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         recorder.start_recording()  # エラーが発生するが処理は継続
         frames, sample_rate = recorder.stop_recording()
 
@@ -746,7 +747,7 @@ class TestIntegrationScenarios:
     def test_multiple_recording_sessions(self, mock_makedirs):
         """正常系: 複数回の録音セッション"""
         # Act
-        recorder = AudioRecorder(self.mock_config)
+        recorder = AudioRecorder(dict_to_config(self.mock_config))
         
         # 1回目の録音セッション
         with patch('service.audio_recorder.pyaudio.PyAudio') as mock_pyaudio1:
@@ -805,7 +806,7 @@ class TestPerformance:
 
         # Act
         start_time = time.time()
-        result = save_audio(large_frames, 16000, config)
+        result = save_audio(large_frames, 16000, dict_to_config(config))
         end_time = time.time()
 
         # Assert
@@ -830,8 +831,8 @@ class TestErrorHandling:
         # 各種エラーシナリオをテスト
         with patch('service.audio_recorder.pyaudio.PyAudio') as mock_pyaudio:
             mock_pyaudio.side_effect = Exception("Critical PyAudio error")
-            
-            recorder = AudioRecorder(config)
+
+            recorder = AudioRecorder(dict_to_config(config))
             recorder.start_recording()
 
             # Assert
@@ -852,7 +853,7 @@ class TestErrorHandling:
         mock_stream.read.side_effect = OSError("Audio device disconnected")
         mock_pyaudio_class.return_value.open.return_value = mock_stream
 
-        recorder = AudioRecorder(config)
+        recorder = AudioRecorder(dict_to_config(config))
         recorder.stream = mock_stream
         recorder.is_recording = True
 

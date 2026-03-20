@@ -1,8 +1,5 @@
 import queue
-import time
 from unittest.mock import Mock, patch
-
-import pytest
 import tkinter as tk
 
 from service.ui_queue_processor import UIQueueProcessor
@@ -217,7 +214,7 @@ class TestUIQueueProcessorIsUIValid:
         """異常系: masterがNone"""
         mock_master = Mock(spec=tk.Tk)
         processor = UIQueueProcessor(mock_master)
-        processor.master = None
+        processor.master = None  # type: ignore
 
         assert processor.is_ui_valid() is False
 

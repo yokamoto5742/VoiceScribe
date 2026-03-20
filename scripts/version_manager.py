@@ -4,7 +4,7 @@ from datetime import datetime
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP_INIT_PATH = os.path.join(PROJECT_ROOT, "app", "__init__.py")
-README_PATH = os.path.join(PROJECT_ROOT, "docs", "README.md")
+README_PATH = os.path.join(PROJECT_ROOT, "README.md")
 
 
 def get_current_version():

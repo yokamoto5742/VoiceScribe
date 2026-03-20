@@ -1,6 +1,5 @@
 import configparser
-import os
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
@@ -57,7 +56,7 @@ class TestValidateAudioFile:
 
     def test_validate_none_path(self):
         """異常系: ファイルパスがNone"""
-        is_valid, error_msg = validate_audio_file(None)
+        is_valid, error_msg = validate_audio_file("")  # type: ignore
 
         assert is_valid is False
         assert error_msg == "音声ファイルパスが未指定です"

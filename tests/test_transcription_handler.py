@@ -1,9 +1,5 @@
 import configparser
-import threading
-import time
 from unittest.mock import Mock, patch
-
-import pytest
 import tkinter as tk
 
 from service.transcription_handler import TranscriptionHandler

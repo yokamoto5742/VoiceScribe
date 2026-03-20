@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch, call
 import pytest
 
 from service.recording_controller import RecordingController
+from tests.conftest import dict_to_config
 
 
 class TestRecordingControllerInit:
@@ -44,7 +45,7 @@ class TestRecordingControllerInit:
         # Act
         controller = RecordingController(
             self.mock_master,
-            self.mock_config,
+            dict_to_config(self.mock_config),
             self.mock_recorder,
             self.mock_client,
             self.mock_replacements,
@@ -54,7 +55,7 @@ class TestRecordingControllerInit:
 
         # Assert
         assert controller.master == self.mock_master
-        assert controller.config == self.mock_config
+        assert controller.config['PATHS']['TEMP_DIR'] == self.mock_config['PATHS']['TEMP_DIR']
         assert controller.recorder == self.mock_recorder
         assert controller.ui_callbacks == self.mock_ui_callbacks
         assert controller.show_notification == self.mock_notification_callback
@@ -75,7 +76,7 @@ class TestRecordingControllerInit:
         with pytest.raises(PermissionError):
             RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 self.mock_client,
                 self.mock_replacements,
@@ -103,7 +104,7 @@ class TestRecordingControllerUIManagement:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 Mock(),
                 {},
@@ -133,7 +134,7 @@ class TestRecordingControllerUIManagement:
     def test_is_ui_valid_master_none(self):
         """異常系: masterがNone"""
         # Arrange
-        self.controller.ui_processor.master = None
+        self.controller.ui_processor.master = None  # type: ignore
 
         # Act
         result = self.controller.ui_processor.is_ui_valid()
@@ -192,7 +193,7 @@ class TestRecordingControllerRecording:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 Mock(),
                 {},
@@ -338,7 +339,7 @@ class TestRecordingControllerAutoStop:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 Mock(),
                 {},
@@ -431,7 +432,7 @@ class TestRecordingControllerAudioProcessing:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 self.mock_client,
                 {'テスト': '試験'},
@@ -461,10 +462,11 @@ class TestRecordingControllerAudioProcessing:
         )
 
         # Assert
-        mock_save_audio.assert_called_once_with(test_frames, sample_rate, self.mock_config)
+        actual_config = self.controller.transcription_handler.config
+        mock_save_audio.assert_called_once_with(test_frames, sample_rate, actual_config)
         mock_transcribe_func.assert_called_once_with(
             '/test/temp/audio.wav',
-            self.mock_config,
+            actual_config,
             self.mock_client
         )
         mock_process_punct.assert_called_once_with('テスト。結果、です', True)
@@ -549,7 +551,7 @@ class TestRecordingControllerTextProcessing:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 Mock(),
                 {'テスト': '試験'},
@@ -602,7 +604,7 @@ class TestRecordingControllerTextProcessing:
         mock_copy_paste.assert_called_once_with(
             test_text,
             self.controller.transcription_handler.replacements,
-            self.mock_config
+            self.controller.transcription_handler.config
         )
 
     @patch('service.transcription_handler.copy_and_paste_transcription')
@@ -639,7 +641,7 @@ class TestRecordingControllerCleanup:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 Mock(),
                 {},
@@ -739,7 +741,7 @@ class TestRecordingControllerThreadSafety:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 Mock(),
                 {},
@@ -750,7 +752,7 @@ class TestRecordingControllerThreadSafety:
     def test_concurrent_ui_updates(self):
         """境界値: 並行UI更新"""
         # Arrange
-        self.mock_master.after.side_effect = lambda delay, func, *args: f"task_{delay}"
+        self.mock_master.after.side_effect = lambda delay, *_: f"task_{delay}"
 
         # Act
         task1 = self.mock_master.after(100, Mock())
@@ -801,7 +803,7 @@ class TestRecordingControllerIntegration:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 self.mock_client,
                 {'テスト': '試験'},
@@ -814,8 +816,7 @@ class TestRecordingControllerIntegration:
     @patch('service.transcription_handler.save_audio')
     @patch('service.transcription_handler.transcribe_audio')
     @patch('service.transcription_handler.process_punctuation')
-    @patch('service.transcription_handler.copy_and_paste_transcription')
-    def test_complete_recording_workflow(self, mock_copy_paste, mock_process_punct, mock_transcribe,
+    def test_complete_recording_workflow(self, mock_process_punct, mock_transcribe,
                                         mock_save_audio, mock_timer_class, mock_thread_class):
         """統合テスト: 完全な録音ワークフロー"""
         # Arrange
@@ -855,7 +856,7 @@ class TestRecordingControllerIntegration:
         # Arrange
         self.mock_recorder.start_recording.side_effect = Exception("Recording error")
 
-        with patch.object(self.controller, '_handle_error') as mock_handle_error, \
+        with patch.object(self.controller, '_handle_error'), \
              patch.object(self.controller.ui_processor, 'shutdown'), \
              patch.object(self.controller.recording_timer, 'cleanup'):
             # Act
@@ -877,7 +878,7 @@ class TestRecordingControllerPerformance:
 
     @patch('service.recording_controller.os.makedirs')
     @patch('service.recording_controller.RecordingController._cleanup_temp_files')
-    def test_initialization_performance(self, mock_cleanup, mock_makedirs):
+    def test_initialization_performance(self, *_):
         """初期化処理のパフォーマンステスト"""
         # Arrange
         mock_master = Mock(spec=tk.Tk)
@@ -893,7 +894,7 @@ class TestRecordingControllerPerformance:
         # Act
         start_time = time.time()
         controller = RecordingController(
-            mock_master, config, mock_recorder, Mock(), {},
+            mock_master, dict_to_config(config), mock_recorder, Mock(), {},
             {'update_record_button': Mock(), 'update_status_label': Mock()}, Mock()
         )
         end_time = time.time()
@@ -922,7 +923,7 @@ class TestRecordingControllerPerformance:
 
         with patch('service.recording_controller.os.makedirs'):
             controller = RecordingController(
-                mock_master, config, mock_recorder, Mock(), {},
+                mock_master, dict_to_config(config), mock_recorder, Mock(), {},
                 {'update_record_button': Mock(), 'update_status_label': Mock()}, Mock()
             )
 
@@ -966,7 +967,7 @@ class TestRecordingControllerPunctuationProperty:
              patch('service.recording_controller.RecordingController._cleanup_temp_files'):
             self.controller = RecordingController(
                 self.mock_master,
-                self.mock_config,
+                dict_to_config(self.mock_config),
                 self.mock_recorder,
                 Mock(),
                 {},

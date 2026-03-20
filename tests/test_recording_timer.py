@@ -1,9 +1,6 @@
 import configparser
-import threading
 import time
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import Mock
 import tkinter as tk
 
 from service.recording_timer import RecordingTimer
@@ -158,7 +155,7 @@ class TestRecordingTimerCancel:
         time.sleep(0.1)
 
         assert self.timer._recording_timer is not None
-        assert not self.timer._recording_timer.is_alive()
+        assert not self.timer._recording_timer.is_alive()  # type: ignore
         self.mock_master.after_cancel.assert_called_once_with("after_id_123")
 
     def test_cancel_no_timers(self):
@@ -177,7 +174,7 @@ class TestRecordingTimerCancel:
         # タイマーキャンセル後、少し待機
         time.sleep(0.1)
 
-        assert not self.timer._recording_timer.is_alive()
+        assert not self.timer._recording_timer.is_alive()  # type: ignore
         self.mock_master.after_cancel.assert_not_called()
 
     def test_cancel_with_exception_on_after_cancel(self):
@@ -190,7 +187,7 @@ class TestRecordingTimerCancel:
         # タイマーキャンセル後、少し待機
         time.sleep(0.1)
 
-        assert not self.timer._recording_timer.is_alive()
+        assert not self.timer._recording_timer.is_alive()  # type: ignore
         assert self.timer._five_second_timer is None
 
 
@@ -363,7 +360,7 @@ class TestRecordingTimerCleanup:
         # タイマーキャンセル後、少し待機
         time.sleep(0.1)
 
-        assert not self.timer._recording_timer.is_alive()
+        assert not self.timer._recording_timer.is_alive()  # type: ignore
         self.mock_master.after_cancel.assert_called_once()
 
     def test_cleanup_without_timers(self):

@@ -83,7 +83,7 @@ class TestSafeClipboardCopy:
     def test_safe_clipboard_copy_none_text(self):
         """異常系: Noneのテキスト"""
         # Act
-        result = safe_clipboard_copy(None)
+        result = safe_clipboard_copy(None)  # type: ignore
 
         # Assert
         assert result is False

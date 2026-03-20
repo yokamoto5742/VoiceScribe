@@ -3,6 +3,7 @@ import tkinter as tk
 from unittest.mock import Mock, patch
 
 from service.notification import NotificationManager
+from tests.conftest import dict_to_config
 
 
 class TestNotificationManagerInit:
@@ -20,11 +21,11 @@ class TestNotificationManagerInit:
     def test_notification_manager_init_success(self):
         """正常系: NotificationManager正常初期化"""
         # Act
-        manager = NotificationManager(self.mock_master, self.mock_config)
+        manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
         # Assert
         assert manager.master == self.mock_master
-        assert manager.config == self.mock_config
+        assert manager.config['KEYS']['TOGGLE_RECORDING'] == self.mock_config['KEYS']['TOGGLE_RECORDING']
         assert manager.current_popup is None
 
     def test_notification_manager_init_with_different_config(self):
@@ -37,10 +38,10 @@ class TestNotificationManagerInit:
         }
 
         # Act
-        manager = NotificationManager(self.mock_master, custom_config)
+        manager = NotificationManager(self.mock_master, dict_to_config(custom_config))
 
         # Assert
-        assert manager.config == custom_config
+        assert manager.config == dict_to_config(custom_config)
         assert manager.current_popup is None
 
 
@@ -55,7 +56,7 @@ class TestShowTimedMessage:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     @patch('service.notification.tk.Toplevel')
     @patch('service.notification.tk.Label')
@@ -224,7 +225,7 @@ class TestShowErrorMessage:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     @patch.object(NotificationManager, 'show_timed_message')
     def test_show_error_message_success(self, mock_show_timed):
@@ -269,7 +270,7 @@ class TestShowStatusMessage:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     def test_show_status_message_success(self):
         """正常系: ステータスメッセージ表示成功"""
@@ -313,7 +314,7 @@ class TestDestroyPopup:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     def test_destroy_popup_success(self):
         """正常系: ポップアップ破棄成功"""
@@ -380,7 +381,7 @@ class TestUpdateStatusLabel:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     def test_update_status_label_success(self):
         """正常系: ステータスラベル更新成功"""
@@ -440,7 +441,7 @@ class TestCleanup:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     def test_cleanup_with_popup(self):
         """正常系: ポップアップありのクリーンアップ"""
@@ -495,7 +496,7 @@ class TestIntegrationScenarios:
     def test_multiple_notifications_workflow(self, mock_label_class, mock_toplevel_class):
         """統合テスト: 複数の通知を順次表示"""
         # Arrange
-        manager = NotificationManager(self.mock_master, self.mock_config)
+        manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
         popup1 = Mock()
         popup2 = Mock()
@@ -528,7 +529,7 @@ class TestIntegrationScenarios:
     def test_error_and_status_workflow(self, mock_label_class, mock_toplevel_class):
         """統合テスト: エラー通知とステータス更新"""
         # Arrange
-        manager = NotificationManager(self.mock_master, self.mock_config)
+        manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
         mock_popup = Mock()
         mock_toplevel_class.return_value = mock_popup
@@ -562,7 +563,7 @@ class TestEdgeCases:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     @patch('service.notification.tk.Toplevel')
     @patch('service.notification.tk.Label')
@@ -646,7 +647,7 @@ class TestErrorHandling:
                 'TOGGLE_RECORDING': 'F1'
             }
         }
-        self.manager = NotificationManager(self.mock_master, self.mock_config)
+        self.manager = NotificationManager(self.mock_master, dict_to_config(self.mock_config))
 
     @patch('service.notification.tk.Toplevel')
     def test_toplevel_creation_failure(self, mock_toplevel_class, caplog):

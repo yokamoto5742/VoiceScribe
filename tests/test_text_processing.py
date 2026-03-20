@@ -14,6 +14,7 @@ from service.text_processing import (
     emergency_clipboard_recovery,
     initialize_text_processing
 )
+from tests.conftest import dict_to_config
 
 
 class TestProcessPunctuation:
@@ -103,7 +104,7 @@ class TestProcessPunctuation:
         use_punctuation = False
 
         # Act
-        result = process_punctuation(text, use_punctuation)
+        result = process_punctuation(text, use_punctuation)  # type: ignore
 
         # Assert
         assert result is None
@@ -425,7 +426,7 @@ class TestReplaceText:
         replacements = {"何か": "置換"}
 
         # Act
-        result = replace_text(None, replacements)
+        result = replace_text(None, replacements)  # type: ignore
 
         # Assert
         assert result == ""
@@ -448,7 +449,7 @@ class TestReplaceText:
         text = "テストテキスト"
 
         # Act
-        result = replace_text(text, None)
+        result = replace_text(text, None)  # type: ignore
 
         # Assert
         assert result == "テストテキスト"
@@ -580,7 +581,7 @@ class TestCopyAndPasteTranscription:
         mock_thread.return_value = mock_thread_instance
 
         # Act
-        copy_and_paste_transcription(text, self.mock_replacements, self.mock_config)
+        copy_and_paste_transcription(text, self.mock_replacements, dict_to_config(self.mock_config))
 
         # Assert
         mock_replace.assert_called_once_with(text, self.mock_replacements)
@@ -592,7 +593,7 @@ class TestCopyAndPasteTranscription:
     def test_copy_and_paste_transcription_empty_text(self, mock_replace):
         """境界値: 空のテキスト"""
         # Act & Assert
-        copy_and_paste_transcription("", self.mock_replacements, self.mock_config)
+        copy_and_paste_transcription("", self.mock_replacements, dict_to_config(self.mock_config))
         
         # replace_textが呼ばれないことを確認
         mock_replace.assert_not_called()
@@ -601,8 +602,8 @@ class TestCopyAndPasteTranscription:
     def test_copy_and_paste_transcription_none_text(self, mock_replace):
         """異常系: Noneのテキスト"""
         # Act & Assert
-        copy_and_paste_transcription(None, self.mock_replacements, self.mock_config)
-        
+        copy_and_paste_transcription(None, self.mock_replacements, dict_to_config(self.mock_config))  # type: ignore
+
         # replace_textが呼ばれないことを確認
         mock_replace.assert_not_called()
 
@@ -621,7 +622,7 @@ class TestCopyAndPasteTranscription:
 
         # Act & Assert
         with pytest.raises(Exception, match="クリップボードへのコピーに失敗しました"):
-            copy_and_paste_transcription(text, self.mock_replacements, self.mock_config)
+            copy_and_paste_transcription(text, self.mock_replacements, dict_to_config(self.mock_config))
 
     @patch('service.text_processing.replace_text')
     @patch('service.text_processing.safe_clipboard_copy')
@@ -636,7 +637,7 @@ class TestCopyAndPasteTranscription:
         mock_copy.return_value = True
 
         # Act
-        copy_and_paste_transcription(text, self.mock_replacements, self.mock_config)
+        copy_and_paste_transcription(text, self.mock_replacements, dict_to_config(self.mock_config))
 
         # Assert
         mock_replace.assert_called_once_with(text, self.mock_replacements)
@@ -662,14 +663,15 @@ class TestCopyAndPasteTranscription:
         with patch('service.text_processing.threading.Thread') as mock_thread:
             def immediate_execute(target=None, **kwargs):
                 # スレッドの代わりに即座に実行
-                target()
+                if target:
+                    target()
                 thread_mock = Mock()
                 return thread_mock
 
             mock_thread.side_effect = immediate_execute
 
             # Act
-            copy_and_paste_transcription(text, self.mock_replacements, self.mock_config)
+            copy_and_paste_transcription(text, self.mock_replacements, dict_to_config(self.mock_config))
 
             # Assert
             # paste_delayはデフォルト0.3秒だが、mock_configでは0.1秒に設定されている
@@ -690,7 +692,7 @@ class TestCopyAndPasteTranscription:
 
         # Act & Assert
         with pytest.raises(Exception):
-            copy_and_paste_transcription(text, self.mock_replacements, self.mock_config)
+            copy_and_paste_transcription(text, self.mock_replacements, dict_to_config(self.mock_config))
 
         assert "コピー&ペースト処理でエラー" in caplog.text
 
@@ -835,14 +837,14 @@ class TestIntegrationScenarios:
         with patch('service.text_processing.safe_clipboard_copy') as mock_copy, \
              patch('service.text_processing.safe_paste_text') as mock_paste, \
              patch('service.text_processing.threading.Thread') as mock_thread:
-            
+
             mock_copy.return_value = True
             mock_paste.return_value = True
             mock_thread_instance = Mock()
             mock_thread.return_value = mock_thread_instance
 
             # Act
-            copy_and_paste_transcription(original_text, replacements, config)
+            copy_and_paste_transcription(original_text, replacements, dict_to_config(config))
 
             # Assert
             mock_copy.assert_called_once_with("これは試験と例です")
@@ -950,8 +952,8 @@ class TestThreadingSafety:
 
         with patch('service.text_processing.safe_clipboard_copy', return_value=True):
             # Act
-            copy_and_paste_transcription("テスト1", replacements, config)
-            copy_and_paste_transcription("テスト2", replacements, config)
+            copy_and_paste_transcription("テスト1", replacements, dict_to_config(config))
+            copy_and_paste_transcription("テスト2", replacements, dict_to_config(config))
 
             # Assert
             assert len(threads_created) == 2
