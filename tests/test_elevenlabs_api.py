@@ -14,18 +14,21 @@ from external_service.elevenlabs_api import (
 class TestSetupElevenLabsClient:
     """ElevenLabsクライアント設定のテストクラス"""
 
+    @patch('external_service.elevenlabs_api.httpx.Client')
     @patch('external_service.elevenlabs_api.load_env_variables')
     @patch('external_service.elevenlabs_api.ElevenLabs')
-    def test_setup_client_success(self, mock_elevenlabs, mock_load_env):
+    def test_setup_client_success(self, mock_elevenlabs, mock_load_env, mock_http_client):
         """正常系: APIキーが設定されている場合"""
         mock_load_env.return_value = {"ELEVENLABS_API_KEY": "test_api_key"}
         mock_client = Mock()
         mock_elevenlabs.return_value = mock_client
+        mock_httpx_instance = Mock()
+        mock_http_client.return_value = mock_httpx_instance
 
         result = setup_elevenlabs_client()
 
         assert result == mock_client
-        mock_elevenlabs.assert_called_once_with(api_key="test_api_key")
+        mock_elevenlabs.assert_called_once_with(api_key="test_api_key", httpx_client=mock_httpx_instance)
 
     @patch('external_service.elevenlabs_api.load_env_variables')
     def test_setup_client_no_api_key(self, mock_load_env):
@@ -150,7 +153,7 @@ class TestConvertResponseToText:
         """異常系: 変換中に例外が発生"""
         # textプロパティにアクセスすると例外が発生するケース
         mock_response = Mock()
-        type(mock_response).text = property(lambda self: 1/0)
+        type(mock_response).text = property(lambda _: 1/0)
 
         result = convert_response_to_text(mock_response)
         assert result is None
@@ -194,7 +197,7 @@ class TestTranscribeAudio:
     @patch('builtins.open', new_callable=mock_open, read_data=b'audio_data')
     @patch('external_service.elevenlabs_api.os.path.getsize')
     @patch('external_service.elevenlabs_api.os.path.exists')
-    def test_transcribe_success(self, mock_exists, mock_getsize, mock_file):
+    def test_transcribe_success(self, mock_exists, mock_getsize, _mock_file):
         """正常系: 文字起こし成功"""
         mock_exists.return_value = True
         mock_getsize.return_value = 1024
@@ -211,7 +214,7 @@ class TestTranscribeAudio:
     @patch('builtins.open', new_callable=mock_open, read_data=b'audio_data')
     @patch('external_service.elevenlabs_api.os.path.getsize')
     @patch('external_service.elevenlabs_api.os.path.exists')
-    def test_transcribe_empty_result(self, mock_exists, mock_getsize, mock_file):
+    def test_transcribe_empty_result(self, mock_exists, mock_getsize, _mock_file):
         """正常系: 文字起こし結果が空文字列"""
         mock_exists.return_value = True
         mock_getsize.return_value = 1024
@@ -227,7 +230,7 @@ class TestTranscribeAudio:
     @patch('builtins.open', new_callable=mock_open, read_data=b'audio_data')
     @patch('external_service.elevenlabs_api.os.path.getsize')
     @patch('external_service.elevenlabs_api.os.path.exists')
-    def test_transcribe_api_returns_none(self, mock_exists, mock_getsize, mock_file):
+    def test_transcribe_api_returns_none(self, mock_exists, mock_getsize, _mock_file):
         """異常系: APIがNoneを返す"""
         mock_exists.return_value = True
         mock_getsize.return_value = 1024
@@ -240,7 +243,7 @@ class TestTranscribeAudio:
     @patch('builtins.open', side_effect=FileNotFoundError("ファイルが見つかりません"))
     @patch('external_service.elevenlabs_api.os.path.getsize')
     @patch('external_service.elevenlabs_api.os.path.exists')
-    def test_transcribe_file_not_found_error(self, mock_exists, mock_getsize, mock_file):
+    def test_transcribe_file_not_found_error(self, mock_exists, mock_getsize, _mock_file):
         """異常系: ファイル読み込みでFileNotFoundError"""
         mock_exists.return_value = True
         mock_getsize.return_value = 1024
@@ -252,7 +255,7 @@ class TestTranscribeAudio:
     @patch('builtins.open', side_effect=PermissionError("アクセス拒否"))
     @patch('external_service.elevenlabs_api.os.path.getsize')
     @patch('external_service.elevenlabs_api.os.path.exists')
-    def test_transcribe_permission_error(self, mock_exists, mock_getsize, mock_file):
+    def test_transcribe_permission_error(self, mock_exists, mock_getsize, _mock_file):
         """異常系: ファイル読み込みでPermissionError"""
         mock_exists.return_value = True
         mock_getsize.return_value = 1024
@@ -264,7 +267,7 @@ class TestTranscribeAudio:
     @patch('builtins.open', side_effect=OSError("OS関連エラー"))
     @patch('external_service.elevenlabs_api.os.path.getsize')
     @patch('external_service.elevenlabs_api.os.path.exists')
-    def test_transcribe_os_error(self, mock_exists, mock_getsize, mock_file):
+    def test_transcribe_os_error(self, mock_exists, mock_getsize, _mock_file):
         """異常系: ファイル読み込みでOSError"""
         mock_exists.return_value = True
         mock_getsize.return_value = 1024
@@ -276,7 +279,7 @@ class TestTranscribeAudio:
     @patch('builtins.open', new_callable=mock_open, read_data=b'audio_data')
     @patch('external_service.elevenlabs_api.os.path.getsize')
     @patch('external_service.elevenlabs_api.os.path.exists')
-    def test_transcribe_api_exception(self, mock_exists, mock_getsize, mock_file):
+    def test_transcribe_api_exception(self, mock_exists, mock_getsize, _mock_file):
         """異常系: API呼び出しで例外発生"""
         mock_exists.return_value = True
         mock_getsize.return_value = 1024
