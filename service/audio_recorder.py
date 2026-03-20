@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 from typing import List, Optional, Tuple
 
 import pyaudio
@@ -16,12 +17,16 @@ class AudioRecorder:
         self.is_recording = False
         self.p: Optional[pyaudio.PyAudio] = None
         self.stream: Optional[pyaudio.Stream] = None
+        # ストリームへの排他アクセスと停止シグナル用
+        self._stream_lock = threading.Lock()
+        self._stop_event = threading.Event()
 
         os.makedirs(config.temp_dir, exist_ok=True)
 
         self.logger = logging.getLogger(__name__)
 
     def start_recording(self) -> None:
+        self._stop_event.clear()
         self.is_recording = True
         self.frames = []
         try:
@@ -39,12 +44,15 @@ class AudioRecorder:
 
     def stop_recording(self) -> Tuple[List[bytes], int]:
         self.is_recording = False
-        try:
-            if self.stream:
-                self.stream.stop_stream()
-                self.stream.close()
-        except Exception as e:
-            self.logger.error(f'音声入力の停止中に予期せぬエラーが発生しました: {e}')
+        # 先に停止シグナルをセットし、record()のread()完了後にストリームを閉じる
+        self._stop_event.set()
+        with self._stream_lock:
+            try:
+                if self.stream:
+                    self.stream.stop_stream()
+                    self.stream.close()
+            except Exception as e:
+                self.logger.error(f'音声入力の停止中に予期せぬエラーが発生しました: {e}')
 
         try:
             if self.p:
@@ -56,11 +64,15 @@ class AudioRecorder:
         return self.frames, self.sample_rate
 
     def record(self) -> None:
-        while self.is_recording:
+        while not self._stop_event.is_set():
             try:
                 if self.stream is None:
                     raise AttributeError('ストリームが初期化されていません')
-                data = self.stream.read(self.chunk)
+                with self._stream_lock:
+                    # ロック取得後に再確認してTOCTOU競合を防ぐ
+                    if self._stop_event.is_set():
+                        break
+                    data = self.stream.read(self.chunk, exception_on_overflow=False)
                 self.frames.append(data)
             except AttributeError:
                 self.logger.error('音声入力中にストリーム初期化エラーが発生しました')

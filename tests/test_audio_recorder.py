@@ -322,7 +322,7 @@ class TestAudioRecorderRecord:
     def test_record_immediate_stop(self, mock_makedirs):
         """境界値: 即座に停止される場合"""
         recorder = AudioRecorder(dict_to_app_config(self.mock_config))
-        recorder.is_recording = False
+        recorder._stop_event.set()
 
         recorder.record()
 

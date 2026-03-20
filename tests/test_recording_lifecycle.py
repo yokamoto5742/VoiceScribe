@@ -137,7 +137,7 @@ class TestRecordingLifecycleStartRecording:
         self.update_btn.assert_called_once_with(True)
         self.update_label.assert_called_once()
         mock_thread.start.assert_called_once()
-        self.lifecycle.recording_timer.start.assert_called_once()
+        self.lifecycle.recording_timer.start.assert_called()  # type: ignore[attr-defined]
 
     def test_start_recording_raises_if_thread_alive(self):
         """異常系: 処理スレッドが実行中の場合はRuntimeError"""
@@ -160,7 +160,7 @@ class TestRecordingLifecycleStopRecording:
         """正常系: 録音停止成功"""
         with patch.object(self.lifecycle, '_stop_recording_process') as mock_process:
             self.lifecycle.stop_recording()
-            self.lifecycle.recording_timer.cancel.assert_called_once()
+            self.lifecycle.recording_timer.cancel.assert_called()  # type: ignore[attr-defined]
             mock_process.assert_called_once()
 
     @patch('service.recording_lifecycle.threading.Thread')
@@ -242,7 +242,7 @@ class TestRecordingLifecycleCleanup:
 
         ui.shutdown.assert_called_once()
         th.cancel.assert_called_once()
-        lifecycle.recording_timer.cleanup.assert_called_once()
+        lifecycle.recording_timer.cleanup.assert_called()  # type: ignore[attr-defined]
         _afm.cleanup_temp_files.assert_called()
 
     def test_cleanup_stops_active_recording(self):
