@@ -100,7 +100,11 @@ class RecordingController:
     def toggle_recording(self):
         """録音の開始/停止を切り替え"""
         if not self.recorder.is_recording:
-            self.start_recording()
+            try:
+                self.start_recording()
+            except RuntimeError as e:
+                # 前回の処理が完了していない場合は無視
+                logging.warning(f"録音開始をスキップ: {e}")
         else:
             self.stop_recording()
 
@@ -116,7 +120,7 @@ class RecordingController:
             f"音声入力中... ({self.config['KEYS']['TOGGLE_RECORDING']}キーで停止)"
         )
 
-        recording_thread = threading.Thread(target=self._safe_record, daemon=False)
+        recording_thread = threading.Thread(target=self._safe_record, daemon=True)
         recording_thread.start()
 
         self.recording_timer.start()
@@ -151,7 +155,7 @@ class RecordingController:
             self.transcription_handler.processing_thread = threading.Thread(
                 target=self.transcription_handler.transcribe_frames,
                 args=(frames, sample_rate, self._safe_ui_update, self._safe_error_handler),
-                daemon=False
+                daemon=True
             )
             self.transcription_handler.processing_thread.start()
 

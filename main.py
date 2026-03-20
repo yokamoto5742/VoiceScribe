@@ -1,5 +1,8 @@
+import atexit
+import faulthandler
 import logging
 import os
+import signal
 import sys
 import tkinter as tk
 import traceback
@@ -21,6 +24,21 @@ def main():
     replacements = None
     root = None
     app = None
+
+    # ネイティブクラッシュ（segfault等）のスタックトレースをファイルに出力
+    _crash_log = open('crash_log.txt', 'w', encoding='utf-8')
+    faulthandler.enable(file=_crash_log, all_threads=True)
+    atexit.register(lambda: logging.info("プロセス終了 (atexit)"))
+
+    def _handle_signal(signum, frame):
+        logging.warning(f"シグナル受信: {signum} — アプリを終了します")
+        if app:
+            try:
+                app.close_application()
+            except Exception:
+                pass
+
+    signal.signal(signal.SIGTERM, _handle_signal)
 
     try:
         config = load_config()

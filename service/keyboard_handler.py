@@ -50,16 +50,28 @@ class KeyboardHandler:
             raise
 
     def _handle_toggle_recording_key(self, _: keyboard.KeyboardEvent):
-        self.master.after(0, self._toggle_recording)
+        try:
+            self.master.after(0, self._toggle_recording)
+        except Exception as e:
+            logging.error(f"録音トグルキー処理中にエラー: {e}")
 
     def _handle_exit_key(self, _: keyboard.KeyboardEvent):
-        self.master.after(0, self._close_application)
+        try:
+            self.master.after(0, self._close_application)
+        except Exception as e:
+            logging.error(f"終了キー処理中にエラー: {e}")
 
     def _handle_toggle_punctuation_key(self, _: keyboard.KeyboardEvent):
-        self.master.after(0, self._toggle_punctuation)
+        try:
+            self.master.after(0, self._toggle_punctuation)
+        except Exception as e:
+            logging.error(f"句読点トグルキー処理中にエラー: {e}")
 
     def _handle_reload_audio_key(self, _: keyboard.KeyboardEvent):
-        self.master.after(0, self._reload_audio)
+        try:
+            self.master.after(0, self._reload_audio)
+        except Exception as e:
+            logging.error(f"音声リロードキー処理中にエラー: {e}")
 
     @staticmethod
     def cleanup():
