@@ -66,7 +66,6 @@ python main.py
 | Esc | アプリケーション終了 |
 | F8 | 最新の音声ファイルを再ロード/再変換 |
 | F9 | 句読点機能の有効/無効を切り替え |
-| F10 | 置換エディターを表示 |
 
 ### 基本的な使用フロー
 
@@ -102,16 +101,19 @@ ELEVENLABS_API_KEY=your_api_key_here
 
 主要な設定セクション:
 
-| セクション | 説明                                          |
-|----------|---------------------------------------------|
-| `[AUDIO]` | サンプリングレート 16000 Hz、モノラル (1ch)               |
-| `[ELEVENLABS]` | モデル (scribe_v2)、言語 (jpn)                    |
-| `[FORMATTING]` | 句読点 (`use_punctuation`) と句点設定 (`use_comma`) |
-| `[KEYS]` | キーボードショートカット割り当て                            |
-| `[RECORDING]` | 自動停止タイマー (デフォルト 60 秒)                       |
-| `[CLIPBOARD]` | テキスト貼り付けの遅延・フォールバック設定                       |
-| `[PATHS]` | 置換ファイル、バックアップ、一時ディレクトリ                      |
-| `[LOGGING]` | ログレベル、保持期間、デバッグモード                          |
+| セクション | 説明 |
+|----------|-----|
+| `[AUDIO]` | サンプリングレート (16000 Hz)、チャンネル (1ch)、チャンク |
+| `[ELEVENLABS]` | モデル (`scribe_v2`)、言語 (`jpn`)、オーディオイベントタグ |
+| `[FORMATTING]` | 句読点機能 (`use_punctuation`) と句点設定 (`use_comma`) |
+| `[KEYS]` | キーボードショートカット割り当て (pause, esc, f8, f9) |
+| `[RECORDING]` | 自動停止タイマー (デフォルト 60 秒) |
+| `[CLIPBOARD]` | テキスト貼り付けの遅延設定と SendInput/pyperclip フォールバック |
+| `[PATHS]` | 置換ファイル、バックアップ先、一時ディレクトリ |
+| `[LOGGING]` | ログレベル、保持期間、デバッグモード |
+| `[OPTIONS]` | 起動時の最小化設定 |
+| `[WINDOW]` | ウィンドウサイズ |
+| `[EDITOR]` | 置換エディターのフォントサイズ、寸法 |
 
 ## 開発者向け情報
 
@@ -146,25 +148,88 @@ python build.py
 ### プロジェクト構造
 
 ```
-
+VoiceScribe/
+├── app/                          # Tkinter UI レイヤー
+│   ├── main_window.py            # メインウィンドウ
+│   ├── ui_components.py          # UI コンポーネント
+│   ├── ui_queue_processor.py      # スレッドセーフ UI キュー
+│   ├── notification.py           # 通知表示
+│   └── replacements_editor.py    # テキスト置換エディタ
+│
+├── service/                      # ビジネスロジック層
+│   ├── recording_lifecycle.py    # 記録→変換→貼り付けパイプライン
+│   ├── audio_recorder.py         # 音声キャプチャ
+│   ├── audio_file_manager.py     # WAV ファイル管理
+│   ├── transcription_handler.py  # 非同期文字起こし処理
+│   ├── text_transformer.py       # テキスト置換・句読点処理
+│   ├── clipboard_manager.py      # クリップボード操作
+│   ├── keyboard_handler.py       # グローバルキーボードショートカット
+│   ├── paste_backend.py          # テキスト貼り付けバックエンド
+│   └── recording_timer.py        # 自動停止タイマー
+│
+├── external_service/             # ElevenLabs API ラッパー層
+│   └── elevenlabs_api.py         # Speech-to-Text API クライアント
+│
+├── utils/                        # 設定・ユーティリティ層
+│   ├── app_config.py             # 設定クラス
+│   ├── config_manager.py         # 設定管理
+│   ├── env_loader.py             # 環境変数読み込み
+│   └── config.ini                # デフォルト設定
+│
+├── tests/                        # テストスイート
+│   ├── conftest.py               # テスト共通設定
+│   └── (各レイヤーのテスト)
+│
+├── main.py                       # エントリーポイント
+├── build.py                      # PyInstaller ビルドスクリプト
+├── requirements.txt              # 依存パッケージ
+├── .env                          # 環境変数 (Git 除外)
+├── CLAUDE.md                     # 開発指示
+└── README.md                     # このファイル
 ```
 
 ### アーキテクチャ
 
-**処理フロー:**
+**レイヤー構成:**
+
+- **`utils/`**: 設定のみ。`AppConfig` が `ConfigParser` をラップし、型安全なプロパティを公開
+- **`external_service/`**: ElevenLabs API の薄いラッパー
+- **`service/`**: UI を持たないビジネスロジック。各コンポーネント責務：
+  - `RecordingLifecycle`: 全体のパイプライン統合（`AudioRecorder`、`TranscriptionHandler`、`ClipboardManager`、`AudioFileManager` を管理）
+  - `AudioRecorder`: マイクキャプチャ
+  - `TranscriptionHandler`: ElevenLabs へ送信し、`UIQueueProcessor` 経由で結果を配信
+  - `TextTransformer`: 置換と句読点正規化
+  - `ClipboardManager`: クリップボード操作と貼り付け実行
+  - `KeyboardHandler`: グローバルキーボード登録
+- **`app/`**: Tkinter UI レイヤー。`VoiceInputManager` がメインウィンドウ、`RecordingLifecycle` へ委譲
+
+**データフロー:**
 
 ```
-[音声録音] → [WAV 保存] → [ElevenLabs API] → [テキスト取得]
+ユーザーのキー入力
     ↓
-[テキスト置換] → [句読点処理] → [クリップボード] → [SendInput 貼り付け]
+KeyboardHandler
+    ↓
+RecordingLifecycle.toggle_recording()
+    ↓
+AudioRecorder (バックグラウンドスレッド で音声キャプチャ)
+    ↓
+AudioFileManager (WAV ファイル保存)
+    ↓
+TranscriptionHandler (ElevenLabs API へ非同期送信)
+    ↓
+TextTransformer (置換・句読点処理)
+    ↓
+ClipboardManager (クリップボード操作)
+    ↓
+paste_backend (Win32 SendInput または pyperclip で貼り付け)
 ```
 
 **スレッド設計:**
 
-- **RecordingController**: 音声処理をバックグラウンドスレッドで実行
-- **UIQueueProcessor**: スレッドセーフなキュー経由で UI 更新を処理
-- **RecordingTimer**: 自動停止タイマー (デフォルト 60 秒)
-- **TranscriptionHandler**: 文字起こしと後処理を非同期実行
+- UI の更新は必ず `UIQueueProcessor.schedule_callback()` 経由で実行
+- バックグラウンドスレッドから Tkinter を直接呼び出さない
+- `RecordingLifecycle` が `_check_process_thread` で文字起こしの完了をポーリング
 
 ## 主要な依存パッケージ
 
