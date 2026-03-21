@@ -3,173 +3,106 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## House Rules:
-- 文章ではなくパッチの差分を返す
-- コードの変更範囲は最小限に抑える
-- コードの修正は直接適用する
-- Pythonのコーディング規約はPEP8に従います
-- KISSの原則に従い、できるだけシンプルなコードにします
-- 可読性を優先します。一度読んだだけで理解できるコードが最高のコードです
-- Pythonのコードのimport文は以下の適切な順序に並べ替えてください:
-  1. 標準ライブラリ
-  2. サードパーティライブラリ
-  3. カスタムモジュール
-  それぞれアルファベット順に並べます。importが先でfromは後です。
+- 文章ではなくパッチの差分を返す。
+- コードの変更範囲は最小限に抑える。
+- コードの修正は直接適用する。
+- Pythonのコーディング規約はPEP8に従います。
+- KISSの原則に従い、できるだけシンプルなコードにします。
+- 可読性を優先します。一度読んだだけで理解できるコードが最高のコードです。
+- Pythonのコードのimport文は以下の適切な順序に並べ替えてください。
+標準ライブラリ
+サードパーティライブラリ
+カスタムモジュール 
+それぞれアルファベット順に並べます。importが先でfromは後です。
 
 ## クリーンコードガイドライン
-- 関数のサイズ: 関数は50行以下に抑えることを目標にしてください。関数の処理が多すぎる場合は、より小さなヘルパー関数に分割してください
-- 単一責任: 各関数とモジュールには明確な目的が1つあるようにします。無関係なロジックをまとめないでください
-- 命名: 説明的な名前を使用してください。`tmp` 、`data`、`handleStuff`のような一般的な名前は避けてください。例えば、`doCalc`よりも`calculateInvoiceTotal` の方が適しています
-- DRY原則: コードを重複させないでください。類似のロジックが2箇所に存在する場合は、共有関数にリファクタリングしてください。それぞれに独自の実装が必要な場合はその理由を明確にしてください
-- コメント: 分かりにくいロジックについては説明を加えます。説明不要のコードには過剰なコメントはつけないでください
+- 関数のサイズ：関数は50行以下に抑えることを目標にしてください。関数の処理が多すぎる場合は、より小さな関数に分割してください。
+- 単一責任：各関数とモジュールには明確な目的が1つあるようにします。無関係なロジックをまとめないでください。
+- 命名：説明的な名前を使用してください。`tmp` 、`data`、`handleStuff`のような一般的な名前は避けてください。例えば、`doCalc`よりも`calculateInvoiceTotal` の方が適しています。
+- DRY原則：コードを重複させないでください。類似のロジックが2箇所に存在する場合は、共有関数にリファクタリングしてください。それぞれに独自の実装が必要な場合はその理由を明確にしてください。
+- コメント:分かりにくいロジックについては説明を加えます。説明不要のコードには過剰なコメントはつけないでください。
 - コメントとdocstringは必要最小限に日本語で記述します。
+- このアプリのUI画面で表示するメッセージはすべて日本語にします。
 
-## Project Overview
+## What This Project Is
 
-VoiceScribe is a Windows desktop application for voice-to-text transcription using ElevenLabs Speech-to-Text API. It provides real-time audio recording with keyboard shortcuts and automatic text pasting into other applications.
+VoiceScribe is a Windows desktop application that records audio via hotkey, transcribes it using the ElevenLabs Scribe API, and pastes the result into the active window. It is built with Python + Tkinter and packaged with PyInstaller.
 
-## Core Architecture
+## Commands
 
-### Application Flow
-1. **main.py**: Entry point that initializes components and handles error recovery
-2. **VoiceInputManager** (app/main_window.py): Coordinates UI, recording, and keyboard handling
-3. **RecordingController** (service/recording_controller.py): Manages recording lifecycle, transcription, and text processing
-4. **AudioRecorder** (service/audio_recorder.py): Handles PyAudio recording and WAV file generation
-5. **elevenlabs_api.py** (external_service/): Communicates with ElevenLabs API for transcription
-
-### Key Components
-
-**UI Layer** (app/):
-- `main_window.py`: Main application window and component coordination
-- `ui_components.py`: Tkinter UI widgets and layout
-
-**Service Layer** (service/):
-- `recording_controller.py`: Core business logic for recording/transcription workflow
-- `audio_recorder.py`: Audio capture using PyAudio
-- `keyboard_handler.py`: Global keyboard shortcuts using keyboard library
-- `text_processing.py`: Text replacement and clipboard operations
-- `safe_paste_sendinput.py`: Windows SendInput API for reliable pasting
-- `notification.py`: Windows toast notifications
-- `replacements_editor.py`: UI for editing text replacements
-
-**External Services** (external_service/):
-- `elevenlabs_api.py`: ElevenLabs Speech-to-Text API client with error handling
-
-**Utilities** (utils/):
-- `config_manager.py`: INI configuration file management
-- `env_loader.py`: .env file loading for API keys
-- `log_rotation.py`: Logging setup with file rotation
-
-## Common Development Commands
-
-### Running Tests
 ```bash
-# Run all tests with verbose output
-python -m pytest tests/ -v --tb=short
-
-# Run with coverage report
-python -m pytest tests/ -v --tb=short --cov=. --cov-report=html
-
-# Run specific test file
-python -m pytest tests/test_audio_recorder.py -v
-
-# Run specific test class or function
-python -m pytest tests/test_audio_recorder.py::TestAudioRecorderInit -v
-
-# Run without warnings
-python -m pytest tests/ -v --tb=short --disable-warnings
-```
-
-### Type Checking
-```bash
-# Type check main source directories
-pyright app service utils
-
-# Type check specific file
-pyright service/recording_controller.py
-```
-
-### Building Executable
-```bash
-# Build Windows executable with PyInstaller
-python build.py
-# Output: dist/VoiceScribe.exe
-```
-
-### Running the Application
-```bash
-# Run from source
+# Run the application
 python main.py
 
-# Required: .env file with ELEVENLABS_API_KEY
+# Run all tests
+pytest
+
+# Run tests with coverage
+pytest --cov=. --cov-report=html
+
+# Run a single test file
+pytest tests/service/test_transcription_handler.py
+
+# Run a single test by name
+pytest tests/service/test_transcription_handler.py::TestClass::test_method
+
+# Type checking
+pyright
+
+# Build the executable
+python build.py
 ```
+
+## Architecture
+
+The app follows a layered dependency injection pattern. `main.py` constructs all objects and wires them together — there is no service locator or global state.
+
+### Layer breakdown
+
+- **`utils/`** — Configuration only. `AppConfig` wraps a `ConfigParser` and exposes typed properties. `config.ini` holds all defaults. A `.env` file holds secrets (`ELEVENLABS_API_KEY`).
+
+- **`external_service/`** — Thin wrapper around the ElevenLabs API. `elevenlabs_api.py` exposes `setup_elevenlabs_client()` and `transcribe_audio()`.
+
+- **`service/`** — Business logic, no UI imports.
+  - `RecordingLifecycle` — orchestrates the full record→transcribe→paste pipeline; owns `AudioRecorder`, `TranscriptionHandler`, `ClipboardManager`, `AudioFileManager`.
+  - `TranscriptionHandler` — submits audio frames to ElevenLabs and handles async result delivery via `UIQueueProcessor`.
+  - `ClipboardManager` — copies transcribed text to clipboard and triggers paste via `paste_backend`.
+  - `KeyboardHandler` — registers global hotkeys using the `keyboard` library.
+  - `TextTransformer` — applies text replacements (`replacements.txt`) and punctuation normalization.
+
+- **`app/`** — Tkinter UI layer.
+  - `VoiceInputManager` — main window (`tk.Frame`), owns `KeyboardHandler`, delegates recording to `RecordingLifecycle`.
+  - `UIQueueProcessor` — thread-safe bridge; other threads call `schedule_callback(fn)` to run UI updates on the main thread.
+  - `NotificationManager` — timed overlay messages.
+  - `ReplacementsEditor` — in-app editor for `replacements.txt`.
+
+### Key data flows
+
+1. User presses the toggle key → `KeyboardHandler` → `RecordingLifecycle.toggle_recording()`
+2. Recording stops → `AudioFileManager` saves frames → `TranscriptionHandler.transcribe_frames()` (background thread)
+3. ElevenLabs returns text → `TextTransformer.replace_text()` → `ClipboardManager.copy_and_paste()`
+4. Paste is dispatched via `paste_backend` using Win32 `SendInput`; fallback to `pyperclip`
+
+### Threading model
+
+- All UI mutations must go through `UIQueueProcessor.schedule_callback()` — never call Tkinter from a background thread directly.
+- `RecordingLifecycle` manages a `_check_process_thread` that polls the transcription future and delivers results.
 
 ## Configuration
 
-### Environment Variables (.env)
-- `ELEVENLABS_API_KEY`: Required for ElevenLabs API access
+`utils/config.ini` is the primary config file. Key sections:
 
-### Configuration File (utils/config.ini)
-Key settings for development:
-- `[ELEVENLABS]`: Model selection (scribe_v2 default), language (jpn)
-- `[AUDIO]`: Audio settings (sample_rate=16000, channels=1, chunk=1024)
-- `[KEYS]`: Keyboard shortcuts (pause=toggle_recording, esc=exit, f8=reload, f9=toggle_punctuation)
-- `[PATHS]`: temp_dir for audio files, replacements_file location
-- `[LOGGING]`: log_level, debug_mode, log_retention_days
-- `[RECORDING]`: auto_stop_timer (60 seconds default)
-- `[OPTIONS]`: start_minimized (True default)
+| Section | Notable keys |
+|---------|-------------|
+| `[KEYS]` | `toggle_recording`, `exit_app`, `toggle_punctuation` |
+| `[ELEVENLABS]` | `model` (default `scribe_v2`), `language` (default `jpn`) |
+| `[PATHS]` | `replacements_file`, `temp_dir` |
+| `[RECORDING]` | `auto_stop_timer` (seconds) |
 
-## Development Patterns
+`ELEVENLABS_API_KEY` must be set in `.env`.
 
-### Error Handling
-- All external API calls wrapped in try-except with specific error types
-- UI errors shown via NotificationManager
-- Comprehensive logging with traceback in debug mode
-- Emergency cleanup handlers in main.py for graceful shutdown
+## Tests
 
-### Threading
-- RecordingController uses threading for non-blocking audio processing
-- UI updates via queue.Queue for thread safety (_ui_queue, _schedule_ui_callback)
-- Timer-based auto-stop for recordings (recording_timer)
-- All UI operations must be scheduled through _schedule_ui_callback to avoid TclError
+Tests mirror the source tree under `tests/`. `tests/conftest.py` provides `dict_to_app_config()` — a helper that builds an `AppConfig` from a plain dict without reading `config.ini`, used throughout service-layer tests.
 
-### Text Processing Pipeline
-1. Audio recorded → saved as WAV
-2. ElevenLabs API transcription
-3. Text replacements applied (from replacements.txt)
-4. Punctuation processing (optional)
-5. Copy to clipboard
-6. Paste via SendInput API
-
-### Testing Strategy
-- pytest with mock for external dependencies (PyAudio, ElevenLabs API)
-- Coverage tracking enabled
-- Test structure mirrors source structure (tests/test_<module>.py)
-- Tests cover core functionality for audio recording, text processing, and UI components
-
-## Key Technical Constraints
-
-- **Windows-only**: Uses Windows-specific APIs (SendInput, pywin32-ctypes)
-- **PyAudio dependency**: Requires audio hardware access
-- **ElevenLabs API**: Online-only, requires API key and network connection
-- **Config paths**: Hardcoded paths in config.ini need adjustment for development vs. production
-- **Keyboard library**: Global keyboard hooks require proper cleanup to avoid conflicts
-
-## Version Management
-- Version defined in app/__init__.py (__version__, __date__)
-- scripts/version_manager.py auto-increments on build
-- PyInstaller bundles version into executable
-
-## Important Files Not to Modify
-- service/replacements.txt: User data for text replacements
-- logs/: Runtime logs with rotation
-- temp/: Temporary audio files (auto-cleanup after 240 minutes)
-
-## Dependencies
-Key packages from requirements.txt:
-- elevenlabs==2.25.0: ElevenLabs API client
-- PyAudio==0.2.14: Audio recording
-- keyboard==0.13.5: Global keyboard shortcuts
-- pyperclip==1.9.0: Clipboard operations
-- pytest==8.4.1: Testing framework
-- pyright==1.1.407: Type checking
-- pyinstaller==6.14.2: Executable building
+UI tests (under `tests/app/`) mock Tkinter. External API tests (under `tests/external_service/`) mock the ElevenLabs client.
