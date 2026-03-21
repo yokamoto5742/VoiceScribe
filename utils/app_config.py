@@ -11,6 +11,11 @@ class AppConfig:
     def __init__(self, config: configparser.ConfigParser):
         self._config = config
 
+    @property
+    def raw_config(self) -> configparser.ConfigParser:
+        """内部の ConfigParser インスタンスを返す"""
+        return self._config
+
     # --- AUDIO ---
     @property
     def audio_sample_rate(self) -> int:

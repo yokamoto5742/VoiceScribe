@@ -93,7 +93,7 @@ class TestRecordingTimerStart:
 
     def test_start_with_60_second_timer(self):
         """正常系: 60秒タイマーの開始"""
-        self.timer.config.raw_config['RECORDING']['AUTO_STOP_TIMER'] = '60'
+        self.timer.config._config['RECORDING']['AUTO_STOP_TIMER'] = '60'
 
         self.timer.start()
 

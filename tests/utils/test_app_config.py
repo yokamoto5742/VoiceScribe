@@ -141,11 +141,11 @@ class TestAppConfigElevenLabs:
 
 
 class TestAppConfigRawConfig:
-    """raw_configプロパティのテストクラス"""
+    """内部_configプロパティのテストクラス"""
 
     def test_raw_config_returns_configparser(self):
-        """正常系: ConfigParserオブジェクトを返す"""
+        """正常系: 内部_configはConfigParserオブジェクト"""
         import configparser
         config = dict_to_app_config({'AUDIO': {'SAMPLE_RATE': '16000'}})
-        assert isinstance(config.raw_config, configparser.ConfigParser)
-        assert config.raw_config['AUDIO']['SAMPLE_RATE'] == '16000'
+        assert isinstance(config._config, configparser.ConfigParser)
+        assert config._config['AUDIO']['SAMPLE_RATE'] == '16000'

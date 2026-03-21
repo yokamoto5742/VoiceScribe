@@ -58,8 +58,8 @@ class TestShowTimedMessage:
         }
         self.manager = NotificationManager(self.mock_master, dict_to_app_config(self.mock_config))
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_show_timed_message_success(self, mock_label_class, mock_toplevel_class):
         """正常系: メッセージ表示成功"""
         # Arrange
@@ -80,8 +80,8 @@ class TestShowTimedMessage:
         mock_popup.after.assert_called_once_with(3000, self.manager._destroy_popup)
         assert self.manager.current_popup == mock_popup
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_show_timed_message_with_existing_popup(self, mock_label_class, mock_toplevel_class):
         """正常系: 既存のポップアップがある場合は破棄してから表示"""
         # Arrange
@@ -101,7 +101,7 @@ class TestShowTimedMessage:
         mock_toplevel_class.assert_called_once_with(self.mock_master)
         assert self.manager.current_popup == new_popup
 
-    @patch('app.notification.tk.Toplevel')
+    @patch('app.notification_manager.tk.Toplevel')
     def test_show_timed_message_with_existing_popup_tcl_error(self, mock_toplevel_class):
         """異常系: 既存ポップアップ破棄時のTclError"""
         # Arrange
@@ -119,8 +119,8 @@ class TestShowTimedMessage:
         existing_popup.destroy.assert_called_once()
         mock_toplevel_class.assert_called_once()
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_show_timed_message_default_duration(self, mock_label_class, mock_toplevel_class):
         """正常系: デフォルト表示時間（2秒）"""
         # Arrange
@@ -135,8 +135,8 @@ class TestShowTimedMessage:
         # Assert
         mock_popup.after.assert_called_once_with(2000, self.manager._destroy_popup)
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_show_timed_message_custom_duration(self, mock_label_class, mock_toplevel_class):
         """正常系: カスタム表示時間"""
         # Arrange
@@ -151,7 +151,7 @@ class TestShowTimedMessage:
         # Assert
         mock_popup.after.assert_called_once_with(5000, self.manager._destroy_popup)
 
-    @patch('app.notification.tk.Toplevel')
+    @patch('app.notification_manager.tk.Toplevel')
     def test_show_timed_message_exception(self, mock_toplevel_class, caplog):
         """異常系: ポップアップ作成時の例外"""
         # Arrange
@@ -164,8 +164,8 @@ class TestShowTimedMessage:
         # Assert
         assert "通知中にエラーが発生しました" in caplog.text
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_show_timed_message_empty_title(self, mock_label_class, mock_toplevel_class):
         """境界値: 空のタイトル"""
         # Arrange
@@ -180,8 +180,8 @@ class TestShowTimedMessage:
         # Assert
         mock_popup.title.assert_called_once_with("")
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_show_timed_message_empty_message(self, mock_label_class, mock_toplevel_class):
         """境界値: 空のメッセージ"""
         # Arrange
@@ -196,8 +196,8 @@ class TestShowTimedMessage:
         # Assert
         mock_label_class.assert_called_once_with(mock_popup, text="")
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_show_timed_message_long_text(self, mock_label_class, mock_toplevel_class):
         """境界値: 長いメッセージテキスト"""
         # Arrange
@@ -491,8 +491,8 @@ class TestIntegrationScenarios:
             }
         }
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_multiple_notifications_workflow(self, mock_label_class, mock_toplevel_class):
         """統合テスト: 複数の通知を順次表示"""
         # Arrange
@@ -524,8 +524,8 @@ class TestIntegrationScenarios:
         manager.cleanup()
         popup3.destroy.assert_called_once()
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_error_and_status_workflow(self, mock_label_class, mock_toplevel_class):
         """統合テスト: エラー通知とステータス更新"""
         # Arrange
@@ -565,8 +565,8 @@ class TestEdgeCases:
         }
         self.manager = NotificationManager(self.mock_master, dict_to_app_config(self.mock_config))
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_notification_with_special_characters(self, mock_label_class, mock_toplevel_class):
         """エッジケース: 特殊文字を含む通知"""
         # Arrange
@@ -583,8 +583,8 @@ class TestEdgeCases:
         # Assert
         mock_label_class.assert_called_once_with(mock_popup, text=special_text)
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_notification_with_unicode(self, mock_label_class, mock_toplevel_class):
         """エッジケース: Unicode文字を含む通知"""
         # Arrange
@@ -601,8 +601,8 @@ class TestEdgeCases:
         # Assert
         mock_label_class.assert_called_once_with(mock_popup, text=unicode_text)
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_rapid_notifications(self, mock_label_class, mock_toplevel_class):
         """エッジケース: 短時間に大量の通知"""
         # Arrange
@@ -649,7 +649,7 @@ class TestErrorHandling:
         }
         self.manager = NotificationManager(self.mock_master, dict_to_app_config(self.mock_config))
 
-    @patch('app.notification.tk.Toplevel')
+    @patch('app.notification_manager.tk.Toplevel')
     def test_toplevel_creation_failure(self, mock_toplevel_class, caplog):
         """異常系: Toplevel作成失敗"""
         # Arrange
@@ -662,8 +662,8 @@ class TestErrorHandling:
         # Assert
         assert "通知中にエラーが発生しました" in caplog.text
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_label_creation_failure(self, mock_label_class, mock_toplevel_class, caplog):
         """異常系: Label作成失敗"""
         # Arrange
@@ -678,8 +678,8 @@ class TestErrorHandling:
         # Assert
         assert "通知中にエラーが発生しました" in caplog.text
 
-    @patch('app.notification.tk.Toplevel')
-    @patch('app.notification.tk.Label')
+    @patch('app.notification_manager.tk.Toplevel')
+    @patch('app.notification_manager.tk.Label')
     def test_after_scheduling_failure(self, mock_label_class, mock_toplevel_class, caplog):
         """異常系: afterスケジューリング失敗"""
         # Arrange

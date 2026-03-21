@@ -14,13 +14,13 @@ class TestClipboardManagerInitialize:
     """ClipboardManager.initialize()のテストクラス"""
 
     @patch('service.clipboard_manager.is_paste_available')
-    @patch('service.clipboard_manager.pyperclip.copy')
     @patch('service.clipboard_manager.pyperclip.paste')
-    @patch('service.clipboard_manager.time.sleep')
-    def test_initialize_success(self, mock_sleep, mock_paste, mock_copy, mock_is_available):
+    @patch('service.clipboard_manager.pyperclip.copy', new=Mock())
+    @patch('service.clipboard_manager.time.sleep', new=Mock())
+    def test_initialize_success(self, mock_paste, mock_is_available):
         """正常系: 初期化成功"""
         mock_is_available.return_value = True
-        mock_paste.return_value = 'test'
+        mock_paste.return_value = 'クリップボード初期化テスト'
 
         manager = _make_manager()
         result = manager.initialize()
@@ -29,10 +29,10 @@ class TestClipboardManagerInitialize:
         mock_is_available.assert_called_once()
 
     @patch('service.clipboard_manager.is_paste_available')
-    @patch('service.clipboard_manager.pyperclip.copy')
     @patch('service.clipboard_manager.pyperclip.paste')
-    @patch('service.clipboard_manager.time.sleep')
-    def test_initialize_paste_unavailable(self, mock_sleep, mock_paste, mock_copy, mock_is_available, caplog):
+    @patch('service.clipboard_manager.pyperclip.copy', new=Mock())
+    @patch('service.clipboard_manager.time.sleep', new=Mock())
+    def test_initialize_paste_unavailable(self, mock_paste, mock_is_available, caplog):
         """異常系: ペースト機能が利用不可"""
         caplog.set_level(logging.ERROR)
         mock_is_available.return_value = False
@@ -44,14 +44,14 @@ class TestClipboardManagerInitialize:
         assert "貼り付け機能初期化失敗" in caplog.text
 
     @patch('service.clipboard_manager.is_paste_available')
-    @patch('service.clipboard_manager.pyperclip.copy')
     @patch('service.clipboard_manager.pyperclip.paste')
-    @patch('service.clipboard_manager.time.sleep')
-    def test_initialize_recovery_failure(self, mock_sleep, mock_paste, mock_copy, mock_is_available, caplog):
+    @patch('service.clipboard_manager.pyperclip.copy', new=Mock())
+    @patch('service.clipboard_manager.time.sleep', new=Mock())
+    def test_initialize_recovery_failure(self, mock_paste, mock_is_available, caplog):
         """異常系: クリップボード復旧失敗"""
         caplog.set_level(logging.WARNING)
         mock_is_available.return_value = True
-        mock_paste.return_value = 'unexpected'  # 'test'と一致しない
+        mock_paste.return_value = 'unexpected'  # 期待値と一致しない
 
         manager = _make_manager()
         result = manager.initialize()
@@ -59,8 +59,8 @@ class TestClipboardManagerInitialize:
         assert result is False
         assert "クリップボード初期化テストに失敗しました" in caplog.text
 
-    @patch('service.clipboard_manager.is_paste_available', side_effect=Exception("初期化エラー"))
-    def test_initialize_exception(self, mock_is_available, caplog):
+    @patch('service.clipboard_manager.is_paste_available', new=Mock(side_effect=Exception("初期化エラー")))
+    def test_initialize_exception(self, caplog):
         """異常系: 例外発生"""
         caplog.set_level(logging.ERROR)
 
@@ -142,23 +142,24 @@ class TestClipboardManagerEmergencyRecovery:
 
     @patch('service.clipboard_manager.pyperclip.copy')
     @patch('service.clipboard_manager.pyperclip.paste')
-    @patch('service.clipboard_manager.time.sleep')
-    def test_emergency_recovery_success(self, mock_sleep, mock_paste, mock_copy):
+    @patch('service.clipboard_manager.time.sleep', new=Mock())
+    def test_emergency_recovery_success(self, mock_paste, mock_copy):
         """正常系: クリップボード復旧成功"""
-        mock_paste.return_value = 'test'
+        test_text = 'クリップボード初期化テスト'
+        mock_paste.return_value = test_text
 
         manager = _make_manager()
         result = manager.emergency_recovery()
 
         assert result is True
         assert mock_copy.call_count == 2
-        mock_copy.assert_has_calls([call(''), call('test')])
+        mock_copy.assert_has_calls([call(''), call(test_text)])
         mock_paste.assert_called_once()
 
-    @patch('service.clipboard_manager.pyperclip.copy')
     @patch('service.clipboard_manager.pyperclip.paste')
-    @patch('service.clipboard_manager.time.sleep')
-    def test_emergency_recovery_paste_mismatch(self, mock_sleep, mock_paste, mock_copy):
+    @patch('service.clipboard_manager.pyperclip.copy', new=Mock())
+    @patch('service.clipboard_manager.time.sleep', new=Mock())
+    def test_emergency_recovery_paste_mismatch(self, mock_paste):
         """異常系: ペースト結果が期待値と異なる"""
         mock_paste.return_value = 'unexpected'
 

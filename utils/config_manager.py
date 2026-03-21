@@ -11,7 +11,7 @@ def get_config_path():
     global _config_path_cache
     if _config_path_cache is None:
         if getattr(sys, 'frozen', False):
-            base_path = sys._MEIPASS
+            base_path = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
         else:
             base_path = os.path.dirname(__file__)
         _config_path_cache = os.path.join(base_path, 'config.ini')

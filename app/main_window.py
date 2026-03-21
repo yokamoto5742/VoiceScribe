@@ -71,16 +71,24 @@ class VoiceInputManager:
         save_config(self.config.raw_config)
 
     def close_application(self) -> None:
-        try:
-            if self.recording_lifecycle:
-                self.recording_lifecycle.cleanup()
-            if self.keyboard_handler:
-                self.keyboard_handler.cleanup()
-            if self.notification_manager:
-                self.notification_manager.cleanup()
-            time.sleep(0.1)
-            self.master.quit()
+        if getattr(self, '_closed', False):
+            return
+        self._closed = True
 
+        for name, component in [
+            ('recording_lifecycle', self.recording_lifecycle),
+            ('keyboard_handler', self.keyboard_handler),
+            ('notification_manager', self.notification_manager),
+        ]:
+            if component and hasattr(component, 'cleanup'):
+                try:
+                    component.cleanup()
+                except Exception as e:
+                    logging.error(f'クリーンアップ失敗 ({name}): {str(e)}')
+
+        time.sleep(0.1)
+        try:
+            self.master.quit()
+            self.master.destroy()
         except Exception as e:
-            logging.error(f'アプリケーション終了処理中にエラー: {str(e)}')
-            sys.exit(1)
+            logging.error(f'UI終了中にエラー: {str(e)}')
