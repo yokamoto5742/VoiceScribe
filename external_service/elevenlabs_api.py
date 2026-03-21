@@ -15,8 +15,7 @@ def setup_elevenlabs_client() -> ElevenLabs:
     api_key = env_vars.get('ELEVENLABS_API_KEY')
     if not api_key:
         raise ValueError('ELEVENLABS_API_KEYが未設定です')
-    # 接続タイムアウトを短く設定し、ハング時に速やかにエラーを返す
-    # ElevenLabs SDKはfloatのみ受け付けるためhttpx_client経由で設定
+
     timeout = httpx.Timeout(connect=15.0, read=240.0, write=30.0, pool=5.0)
     httpx_client = httpx.Client(timeout=timeout)
     return ElevenLabs(api_key=api_key, httpx_client=httpx_client)
@@ -92,7 +91,7 @@ def transcribe_audio(
         return text_result
 
     except httpx.ConnectTimeout as e:
-        logging.error(f'API接続タイムアウト (15秒): {str(e)}')
+        logging.error(f'API接続タイムアウト: {str(e)}')
         logging.debug(f'詳細: {traceback.format_exc()}')
         return None
     except httpx.TimeoutException as e:

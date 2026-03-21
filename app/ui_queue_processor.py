@@ -34,7 +34,7 @@ class UIQueueProcessor:
             except queue.Empty:
                 break
             except tk.TclError as e:
-                logging.error(f'TclError in queue processing: {str(e)}')
+                logging.error(f'キュー処理エラー (TclError): {e}')
                 break
 
         if not self._is_shutting_down and self.is_ui_valid():

@@ -29,18 +29,16 @@ class VoiceInputManager:
         self.ui_components = UIComponents(master, config, {
             'toggle_recording': self.toggle_recording,
             'toggle_punctuation': self.toggle_punctuation,
-            'reload_audio': lambda: None,  # setup_ui後にupdate_callbacksで更新
+            'reload_audio': lambda: None,
         })
         self.ui_components.setup_ui(version)
 
-        # setup_ui後にreload_audioコールバックを正しいメソッドに更新
         self.ui_components.update_callbacks({
             'toggle_recording': self.toggle_recording,
             'toggle_punctuation': self.toggle_punctuation,
             'reload_audio': self.ui_components.reload_latest_audio,
         })
 
-        # UIコールバックをRecordingLifecycleに接続
         recording_lifecycle.wire_ui_callbacks(
             update_record_button=self.ui_components.update_record_button,
             update_status_label=self.ui_components.update_status_label,
