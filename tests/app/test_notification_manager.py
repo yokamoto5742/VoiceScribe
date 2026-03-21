@@ -2,7 +2,7 @@ import logging
 import tkinter as tk
 from unittest.mock import Mock, patch
 
-from app.notification import NotificationManager
+from app.notification_manager import NotificationManager
 from tests.conftest import dict_to_app_config
 
 

@@ -17,7 +17,7 @@ class AudioFileManager:
         self._config = config
 
     def save_audio(self, frames: List[bytes], sample_rate: int) -> Optional[str]:
-        """音声フレームをWAVファイルとして保存し、パスを返す"""
+        """音声フレームをWAVファイルとして保存しパスを返す"""
         try:
             temp_dir = self._config.temp_dir
             os.makedirs(temp_dir, exist_ok=True)
@@ -39,7 +39,7 @@ class AudioFileManager:
             return None
 
     def cleanup_temp_files(self) -> None:
-        """設定した保持時間を超えた一時ファイルを削除する"""
+        """保存期間を超えた一時ファイルを削除"""
         try:
             current_time = datetime.now()
             pattern = os.path.join(self._config.temp_dir, '*.wav')

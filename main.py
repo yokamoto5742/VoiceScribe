@@ -10,7 +10,7 @@ from tkinter import messagebox
 
 from app import __version__
 from app.main_window import VoiceInputManager
-from app.notification import NotificationManager
+from app.notification_manager import NotificationManager
 from app.ui_queue_processor import UIQueueProcessor
 from external_service.elevenlabs_api import setup_elevenlabs_client
 from service.audio_file_manager import AudioFileManager

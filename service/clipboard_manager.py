@@ -34,7 +34,7 @@ class ClipboardManager:
             return False
 
     def copy_and_paste(self, text: str) -> None:
-        """テキストを置換してクリップボードにコピーし、バックグラウンドでペーストする"""
+        """テキストを置換してクリップボードにコピーしバックグラウンドでペーストする"""
         if not text:
             logging.warning('空のテキスト')
             return
@@ -48,7 +48,7 @@ class ClipboardManager:
         thread.start()
 
     def _paste_in_thread(self, text: str) -> None:
-        """置換→クリップボードコピー→ペーストを実行する（バックグラウンドスレッド）"""
+        """バックグラウンドスレッドで置換→クリップボードコピー→ペーストを実行"""
         try:
             logging.debug('_paste_in_thread開始')
 
@@ -81,7 +81,7 @@ class ClipboardManager:
                 pyperclip.copy('')
                 time.sleep(0.1)
 
-                test_text = 'test'
+                test_text = 'クリップボード初期化テスト'
                 pyperclip.copy(test_text)
                 time.sleep(0.1)
 

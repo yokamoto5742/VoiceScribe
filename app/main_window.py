@@ -3,7 +3,7 @@ import sys
 import time
 import tkinter as tk
 
-from app.notification import NotificationManager
+from app.notification_manager import NotificationManager
 from app.ui_components import UIComponents
 from service.keyboard_handler import KeyboardHandler
 from service.recording_lifecycle import RecordingLifecycle

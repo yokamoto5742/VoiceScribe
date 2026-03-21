@@ -17,7 +17,6 @@ class AudioRecorder:
         self.is_recording = False
         self.p: Optional[pyaudio.PyAudio] = None
         self.stream: Optional[pyaudio.Stream] = None
-        # ストリームへの排他アクセスと停止シグナル用
         self._stream_lock = threading.Lock()
         self._stop_event = threading.Event()
 
@@ -44,7 +43,6 @@ class AudioRecorder:
 
     def stop_recording(self) -> Tuple[List[bytes], int]:
         self.is_recording = False
-        # 先に停止シグナルをセットし、record()のread()完了後にストリームを閉じる
         self._stop_event.set()
         with self._stream_lock:
             try:
@@ -69,7 +67,6 @@ class AudioRecorder:
                 if self.stream is None:
                     raise AttributeError('ストリームが初期化されていません')
                 with self._stream_lock:
-                    # ロック取得後に再確認してTOCTOU競合を防ぐ
                     if self._stop_event.is_set():
                         break
                     data = self.stream.read(self.chunk, exception_on_overflow=False)
