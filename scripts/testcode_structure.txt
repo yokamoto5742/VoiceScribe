@@ -1,0 +1,24 @@
+============================================================
+テストファイル一覧: tests
+パス: C:\Users\yokam\PycharmProjects\VoiceScribe\tests
+生成日時: 2026-03-21 13:10:39
+============================================================
+
+└── tests
+    ├── app
+    │   ├── test_notification.py
+    │   ├── test_replacements_editor.py
+    │   └── test_ui_queue_processor.py
+    ├── external_service
+    │   └── test_elevenlabs_api.py
+    ├── service
+    │   ├── test_audio_file_manager.py
+    │   ├── test_audio_recorder.py
+    │   ├── test_clipboard_manager.py
+    │   ├── test_paste_backend.py
+    │   ├── test_recording_lifecycle.py
+    │   ├── test_recording_timer.py
+    │   ├── test_text_transformer.py
+    │   └── test_transcription_handler.py
+    └── utils
+        └── test_app_config.py

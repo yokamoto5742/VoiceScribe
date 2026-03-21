@@ -8,17 +8,17 @@ class ProjectStructureGenerator:
     def __init__(self):
         self.ignore_patterns = {
             '__pycache__', '*.pyc', '*.pyo', '*.pyd', '.pytest_cache',
-            '*.egg-info', 'dist', '.tox', '.coverage', 'htmlcov','.claude','.serena',
+            '*.egg-info', 'dist', '.tox', '.coverage', 'htmlcov','.claude','.serena','alembic','scripts',
             '.venv', 'venv', '.env', 'env', 'tests','nul','logs','assets',
             '.vscode', '.idea', '*.swp', '*.swo', '*~',
             '.git', '.gitignore', '.hg', '.svn',
-            '.DS_Store', 'Thumbs.db', 'desktop.ini','pytest.ini',
-            'node_modules', '.npm',
-            '*.log', '*.tmp', '.cache', 'CLAUDE.md',
+            '.DS_Store', 'Thumbs.db', 'desktop.ini','pytest.ini','*.lock',
+            'node_modules', '.npm', 'package-lock.json',
+            '*.log', '*.tmp', '.cache', 'CLAUDE.md','crash_log.txt',
         }
 
         self.important_files = {
-            'README.md', 'requirements.txt',
+            'DEVELOPMENT.md', 'requirements.txt',
             'setup.py', 'pyproject.toml', 'Dockerfile',
             'config.ini', 'alembic.ini', '.env', 'Procfile'
         }
@@ -49,6 +49,7 @@ class ProjectStructureGenerator:
         root = Path(root_path).resolve()
 
         output_lines.extend([
+            "=" * 60,
             f"プロジェクト構造: {root.name}",
             f"パス: {root}",
             f"生成日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
@@ -112,6 +113,7 @@ class ProjectStructureGenerator:
 
 
 def main():
+    # 現在のディレクトリがscriptsの場合、親ディレクトリを対象とする
     current_dir = os.path.basename(os.getcwd())
     default_path = ".." if current_dir == "scripts" else "."
 
@@ -162,6 +164,7 @@ def main():
             show_size=args.show_size
         )
 
+        # ファイルに保存
         if generator.save_to_file(structure, args.output):
             print(f"ファイルの場所: {os.path.abspath(args.output)}")
 
