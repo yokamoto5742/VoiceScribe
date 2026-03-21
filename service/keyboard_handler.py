@@ -1,18 +1,16 @@
-from __future__ import annotations
 import logging
 import tkinter as tk
 from typing import Callable
 import keyboard
 
+from utils.app_config import AppConfig
 
-
-from utils.app_config import AppConfig  # noqa: F401 (型アノテーション用)
 
 class KeyboardHandler:
     def __init__(
             self,
             master: tk.Tk,
-            config: 'AppConfig',
+            config: AppConfig,
             toggle_recording_callback: Callable,
             toggle_punctuation_callback: Callable,
             reload_audio_callback: Callable,

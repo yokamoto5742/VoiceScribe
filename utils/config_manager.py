@@ -11,7 +11,7 @@ def get_config_path():
     global _config_path_cache
     if _config_path_cache is None:
         if getattr(sys, 'frozen', False):
-            base_path = sys._MEIPASS  # type: ignore[attr-defined]
+            base_path = sys._MEIPASS
         else:
             base_path = os.path.dirname(__file__)
         _config_path_cache = os.path.join(base_path, 'config.ini')
@@ -21,7 +21,6 @@ def get_config_path():
 def get_config_value(config: configparser.ConfigParser, section: str, key: str, default: Any) -> Any:
     try:
         value = config[section][key]
-        # bool型の場合は文字列を正しくパース
         if isinstance(default, bool):
             return value.lower() in ('true', '1', 'yes', 'on')
         return type(default)(value)

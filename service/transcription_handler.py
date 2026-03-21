@@ -37,7 +37,7 @@ class TranscriptionHandler:
             on_complete: Callable[[str], None],
             on_error: Callable[[str], None]
     ) -> None:
-        """音声フレームを文字起こし処理（別スレッドで実行）"""
+        """音声フレームを文字起こし処理"""
         try:
             logging.info('音声フレーム処理開始')
 
@@ -86,7 +86,7 @@ class TranscriptionHandler:
             on_complete: Callable[[str], None],
             on_error: Callable[[str], None]
     ) -> None:
-        """既存の音声ファイルを文字起こしする"""
+        """保存した音声ファイルを文字起こしする"""
         try:
             transcription = self.transcribe_audio_func(
                 file_path,

@@ -15,7 +15,7 @@ from utils.app_config import AppConfig
 
 
 class RecordingLifecycle:
-    """録音の開始から文字起こし・ペーストまでのライフサイクルを管理する"""
+    """録音開始、文字起こし、ペーストまでのライフサイクルを管理"""
 
     def __init__(
             self,
@@ -37,7 +37,6 @@ class RecordingLifecycle:
         self.ui_processor = ui_processor
         self.show_notification = notification_callback
 
-        # UIコールバックは後で wire_ui_callbacks() で設定する
         self._ui_callbacks: Dict[str, Callable] = {}
 
         self._use_punctuation = config.use_punctuation
@@ -87,7 +86,7 @@ class RecordingLifecycle:
             logging.error(f'エラーハンドリング中にエラー: {str(e)}')
 
     def toggle_recording(self) -> None:
-        """録音の開始/停止を切り替える"""
+        """録音の開始と停止を切り替える"""
         if not self.recorder.is_recording:
             try:
                 self.start_recording()
@@ -158,7 +157,7 @@ class RecordingLifecycle:
             self._safe_error_handler(f'録音停止処理中にエラー: {str(e)}')
 
     def _check_process_thread(self, thread: threading.Thread) -> None:
-        """処理スレッドの完了を監視し、完了後にステータスを更新する"""
+        """処理スレッドの完了を監視し完了後にステータスを更新する"""
         try:
             if not thread.is_alive():
                 self._ui_callbacks['update_status_label'](

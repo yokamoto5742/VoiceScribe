@@ -2,7 +2,7 @@ import configparser
 import os
 import sys
 
-from utils.config_manager import get_config_value, save_config
+from utils.config_manager import get_config_value
 
 
 class AppConfig:
@@ -139,13 +139,3 @@ class AppConfig:
     @property
     def editor_font_size(self) -> int:
         return get_config_value(self._config, 'EDITOR', 'FONT_SIZE', 12)
-
-    # --- 後方互換用 ---
-    @property
-    def raw_config(self) -> configparser.ConfigParser:
-        """log_rotation.py等、まだ移行していないモジュール用"""
-        return self._config
-
-    def save(self) -> None:
-        """設定をファイルに保存"""
-        save_config(self._config)

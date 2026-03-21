@@ -35,7 +35,6 @@ def safe_clipboard_copy(text: str) -> bool:
 
 
 def safe_paste_text() -> bool:
-    """クリップボードの内容を貼り付け"""
     try:
         logger.debug("safe_paste_text開始")
 
@@ -44,7 +43,6 @@ def safe_paste_text() -> bool:
             logger.warning("クリップボードが空です")
             return False
 
-        # keyboard操作前に少し待機（フォーカス安定化）
         time.sleep(0.05)
 
         logger.debug("keyboard.send('ctrl+v')実行前")
@@ -72,7 +70,6 @@ def safe_paste_text() -> bool:
 def is_paste_available() -> bool:
     """貼り付け可能かどうかをチェック"""
     try:
-        # keyboardライブラリが利用可能であればTrue
         return True
     except Exception as e:
         logger.error(f"貼り付け機能利用不可: {e}")
