@@ -94,7 +94,7 @@ class TestRecordingTimerStart:
     def test_start_with_60_second_timer(self):
         """正常系: 60秒タイマーの5秒前通知スケジュール"""
         # 60秒設定のタイマーを新規作成（内部構造への直接アクセスを避ける）
-        config = _make_config('60')
+        config = _make_config()
         timer = RecordingTimer(
             self.mock_master, config, self.mock_ui_processor,
             self.mock_notification, self.mock_is_recording, self.mock_on_auto_stop
