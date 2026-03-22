@@ -9,6 +9,8 @@ Windows デスクトップアプリケーションで、ElevenLabs Speech-to-Tex
 - **句読点と句点設定**: 句読点挿入機能 (トグル可能)
 - **自動テキスト貼り付け**: Windows SendInput API による他のアプリケーションへの安全な貼り付け
 - **置換辞書バックアップ**: 設定で指定したバックアップ先に自動保存
+- **包括的なエラーハンドリング**: エラーダイアログ表示とエラーレポート自動作成
+- **クラッシュログの自動記録**: 予期しないクラッシュの詳細情報を記録
 
 ## システム要件
 
@@ -152,9 +154,11 @@ VoiceScribe/
 ├── app/                          # Tkinter UI レイヤー
 │   ├── main_window.py            # メインウィンドウ
 │   ├── ui_components.py          # UI コンポーネント
-│   ├── ui_queue_processor.py      # スレッドセーフ UI キュー
-│   ├── notification.py           # 通知表示
-│   └── replacements_editor.py    # テキスト置換エディタ
+│   ├── ui_queue_processor.py     # スレッドセーフ UI キュー
+│   ├── notification_manager.py   # 通知表示
+│   ├── replacements_editor.py    # テキスト置換エディタ
+│   ├── error_handler.py          # エラーダイアログとレポート
+│   └── application.py            # アプリケーション初期化
 │
 ├── service/                      # ビジネスロジック層
 │   ├── recording_lifecycle.py    # 記録→変換→貼り付けパイプライン
@@ -174,6 +178,8 @@ VoiceScribe/
 │   ├── app_config.py             # 設定クラス
 │   ├── config_manager.py         # 設定管理
 │   ├── env_loader.py             # 環境変数読み込み
+│   ├── process_setup.py          # クラッシュログ・シグナル設定
+│   ├── log_rotation.py           # ログローテーション
 │   └── config.ini                # デフォルト設定
 │
 ├── tests/                        # テストスイート
@@ -192,7 +198,7 @@ VoiceScribe/
 
 **レイヤー構成:**
 
-- **`utils/`**: 設定のみ。`AppConfig` が `ConfigParser` をラップし、型安全なプロパティを公開
+- **`utils/`**: 設定とプロセスセットアップ。`AppConfig` が `ConfigParser` をラップし、型安全なプロパティを公開。`process_setup()` でクラッシュログとシグナルハンドリングを設定
 - **`external_service/`**: ElevenLabs API の薄いラッパー
 - **`service/`**: UI を持たないビジネスロジック。各コンポーネント責務：
   - `RecordingLifecycle`: 全体のパイプライン統合（`AudioRecorder`、`TranscriptionHandler`、`ClipboardManager`、`AudioFileManager` を管理）
@@ -201,7 +207,10 @@ VoiceScribe/
   - `TextTransformer`: 置換と句読点正規化
   - `ClipboardManager`: クリップボード操作と貼り付け実行
   - `KeyboardHandler`: グローバルキーボード登録
-- **`app/`**: Tkinter UI レイヤー。`VoiceInputManager` がメインウィンドウ、`RecordingLifecycle` へ委譲
+- **`app/`**: Tkinter UI レイヤー
+  - `Application`: 初期化と依存関係の構築
+  - `VoiceInputManager`: メインウィンドウ、`RecordingLifecycle` へ委譲
+  - `ErrorHandler`: エラーダイアログ表示とレポート作成
 
 **データフロー:**
 
@@ -230,6 +239,13 @@ paste_backend (Win32 SendInput または pyperclip で貼り付け)
 - UI の更新は必ず `UIQueueProcessor.schedule_callback()` 経由で実行
 - バックグラウンドスレッドから Tkinter を直接呼び出さない
 - `RecordingLifecycle` が `_check_process_thread` で文字起こしの完了をポーリング
+
+**エラーハンドリング:**
+
+- 予期しないエラーは `show_error_dialog()` でユーザーに通知
+- エラーレポートは `write_error_report()` で `error_log.txt` に記録され、自動で開かれる
+- クラッシュログは `crash_log.txt` に記録され、`faulthandler` で詳細情報を取得
+- シグナルとプロセス終了はフックで適切にハンドリング
 
 ## 主要な依存パッケージ
 
@@ -275,6 +291,10 @@ type .env
 1. `utils/config.ini` で `use_sendinput = True` に設定されていることを確認
 2. アプリケーションを管理者権限で実行を試す
 3. テスト対象アプリケーションが標準的なテキスト入力に対応しているか確認 (例: メモ帳、Word)
+
+### エラーレポートが表示される場合
+
+エラーが発生した場合、`error_log.txt` が自動で作成・表示されます。このファイルに詳細なスタックトレースが記録されているため、デバッグの際に参照できます。
 
 ## バージョン情報
 

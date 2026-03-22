@@ -242,3 +242,39 @@ class TestAudioFileManagerCleanup:
 
         manager = AudioFileManager(dict_to_app_config(self.mock_config))
         manager.cleanup_temp_files()  # エラーなく完了
+
+    @patch('service.audio_file_manager.glob.glob')
+    @patch('service.audio_file_manager.os.path.getmtime')
+    @patch('service.audio_file_manager.os.remove')
+    @patch('service.audio_file_manager.datetime')
+    def test_cleanup_file_remove_error_continues(
+        self, mock_datetime, mock_remove, mock_getmtime, mock_glob, caplog
+    ):
+        """異常系: 1ファイルの削除失敗でも残りのファイルの処理を継続する"""
+        from datetime import datetime as real_datetime, timedelta
+        caplog.set_level(logging.ERROR)
+        now = real_datetime(2024, 1, 1, 12)
+        mock_datetime.now.return_value = now
+        mock_datetime.fromtimestamp.return_value = now - timedelta(minutes=300)
+
+        mock_glob.return_value = ['/test/temp/audio_1.wav', '/test/temp/audio_2.wav']
+        # 1件目の削除は失敗、2件目は成功
+        mock_remove.side_effect = [PermissionError("ファイルがロックされています"), None]
+
+        manager = AudioFileManager(dict_to_app_config(self.mock_config))
+        manager.cleanup_temp_files()
+
+        # 2件ともremoveを試みる
+        assert mock_remove.call_count == 2
+        assert "ファイル削除中にエラーが発生しました" in caplog.text
+
+    @patch('service.audio_file_manager.glob.glob')
+    def test_cleanup_outer_error_logged(self, mock_glob, caplog):
+        """異常系: glob処理自体が失敗した場合にエラーログが出力される"""
+        caplog.set_level(logging.ERROR)
+        mock_glob.side_effect = OSError("glob失敗")
+
+        manager = AudioFileManager(dict_to_app_config(self.mock_config))
+        manager.cleanup_temp_files()
+
+        assert "クリーンアップ処理中にエラーが発生しました" in caplog.text

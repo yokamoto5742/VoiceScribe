@@ -33,14 +33,15 @@ class TestClipboardManagerInitialize:
     @patch('service.clipboard_manager.pyperclip.copy', new=Mock())
     @patch('service.clipboard_manager.time.sleep', new=Mock())
     def test_initialize_paste_unavailable(self, mock_paste, mock_is_available, caplog):
-        """異常系: ペースト機能が利用不可"""
+        """異常系: ペースト機能が利用不可の場合 False を返しエラーログを出力する"""
         caplog.set_level(logging.ERROR)
         mock_is_available.return_value = False
         mock_paste.return_value = 'test'
 
         manager = _make_manager()
-        manager.initialize()
+        result = manager.initialize()
 
+        assert result is False
         assert "貼り付け機能初期化失敗" in caplog.text
 
     @patch('service.clipboard_manager.is_paste_available')
@@ -124,6 +125,24 @@ class TestClipboardManagerCopyAndPaste:
         manager._paste_in_thread("テスト")
 
         assert "_paste_in_thread中にエラー" in caplog.text
+
+    @patch('service.clipboard_manager.replace_text')
+    @patch('service.clipboard_manager.safe_clipboard_copy')
+    @patch('service.clipboard_manager.safe_paste_text')
+    @patch('service.clipboard_manager.time.sleep', new=Mock())
+    def test_paste_in_thread_paste_failure_logs_error(
+        self, mock_paste, mock_copy, mock_replace, caplog
+    ):
+        """異常系: ペースト実行失敗時にエラーログが出力される"""
+        caplog.set_level(logging.ERROR)
+        mock_replace.return_value = "置換後テキスト"
+        mock_copy.return_value = True
+        mock_paste.return_value = False  # ペースト失敗
+
+        manager = _make_manager()
+        manager._paste_in_thread("テスト")
+
+        assert "貼り付け実行に失敗しました" in caplog.text
 
     @patch('service.clipboard_manager.replace_text')
     def test_paste_in_thread_empty_replaced_text(self, mock_replace, caplog):

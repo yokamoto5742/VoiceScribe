@@ -48,109 +48,120 @@ class TestTranscriptionHandlerTranscribeFrames:
     """TranscriptionHandlerのtranscribe_frames()メソッドのテストクラス"""
 
     def setup_method(self):
-        self.handler, self.config, self.client, self.audio_file_manager, self.ui_processor = _make_handler()
         self.mock_on_complete = Mock()
         self.mock_on_error = Mock()
 
+    @patch('service.transcription_handler.transcribe_audio')
     @patch('service.transcription_handler.process_punctuation')
-    def test_transcribe_frames_success(self, mock_process_punct):
+    def test_transcribe_frames_success(self, mock_process_punct, mock_transcribe_audio):
         """正常系: 音声フレームの文字起こし成功"""
+        # ハンドラをpatchコンテキスト内で生成し transcribe_audio_func にモックが注入される
+        handler, config, _, audio_file_manager, ui_processor = _make_handler()
         frames = [b'audio_data_1', b'audio_data_2']
         sample_rate = 16000
-        self.audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
-        self.handler.transcribe_audio_func = Mock(return_value="文字起こし結果")
+        audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
+        mock_transcribe_audio.return_value = "文字起こし結果"
         mock_process_punct.return_value = "文字起こし結果"
 
-        self.handler.transcribe_frames(frames, sample_rate, self.mock_on_complete, self.mock_on_error)
+        handler.transcribe_frames(frames, sample_rate, self.mock_on_complete, self.mock_on_error)
 
-        self.audio_file_manager.save_audio.assert_called_once_with(frames, sample_rate)
-        self.handler.transcribe_audio_func.assert_called_once_with(
-            '/test/temp/audio.wav', self.config, self.client
+        audio_file_manager.save_audio.assert_called_once_with(frames, sample_rate)
+        mock_transcribe_audio.assert_called_once_with(
+            '/test/temp/audio.wav', config, handler.client
         )
         mock_process_punct.assert_called_once_with("文字起こし結果", False)
-        self.ui_processor.schedule_callback.assert_called_once_with(
+        ui_processor.schedule_callback.assert_called_once_with(
             self.mock_on_complete, "文字起こし結果"
         )
 
     def test_transcribe_frames_save_audio_fails(self):
         """異常系: 音声ファイル保存失敗"""
-        self.audio_file_manager.save_audio.return_value = None
+        handler, _, _, audio_file_manager, ui_processor = _make_handler()
+        audio_file_manager.save_audio.return_value = None
 
-        self.handler.transcribe_frames(
+        handler.transcribe_frames(
             [b'audio_data'], 16000, self.mock_on_complete, self.mock_on_error
         )
 
-        self.ui_processor.schedule_callback.assert_called_once()
-        args = self.ui_processor.schedule_callback.call_args[0]
+        ui_processor.schedule_callback.assert_called_once()
+        args = ui_processor.schedule_callback.call_args[0]
         assert args[0] == self.mock_on_error
         assert "音声ファイルの保存に失敗しました" in args[1]
 
-    def test_transcribe_frames_transcription_fails(self):
+    @patch('service.transcription_handler.transcribe_audio')
+    def test_transcribe_frames_transcription_fails(self, mock_transcribe_audio):
         """異常系: 文字起こし失敗"""
-        self.audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
-        self.handler.transcribe_audio_func = Mock(return_value=None)
+        handler, _, _, audio_file_manager, ui_processor = _make_handler()
+        audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
+        mock_transcribe_audio.return_value = None
 
-        self.handler.transcribe_frames(
+        handler.transcribe_frames(
             [b'audio_data'], 16000, self.mock_on_complete, self.mock_on_error
         )
 
-        self.ui_processor.schedule_callback.assert_called_once()
-        args = self.ui_processor.schedule_callback.call_args[0]
+        ui_processor.schedule_callback.assert_called_once()
+        args = ui_processor.schedule_callback.call_args[0]
         assert args[0] == self.mock_on_error
         assert "音声ファイルの文字起こしに失敗しました" in args[1]
 
     def test_transcribe_frames_cancelled_before_save(self):
         """異常系: 保存前にキャンセル"""
-        self.handler.cancel_processing = True
+        handler, _, _, audio_file_manager, ui_processor = _make_handler()
+        handler.cancel_processing = True
 
-        self.handler.transcribe_frames(
+        handler.transcribe_frames(
             [b'audio_data'], 16000, self.mock_on_complete, self.mock_on_error
         )
 
-        self.audio_file_manager.save_audio.assert_not_called()
-        self.ui_processor.schedule_callback.assert_not_called()
+        audio_file_manager.save_audio.assert_not_called()
+        ui_processor.schedule_callback.assert_not_called()
 
     def test_transcribe_frames_cancelled_after_save(self):
         """異常系: 保存後にキャンセル"""
-        self.audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
-        self.handler.transcribe_audio_func = Mock(return_value=None)
-        self.handler.cancel_processing = True
+        handler, _, _, audio_file_manager, ui_processor = _make_handler()
+        audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
+        handler.cancel_processing = True
 
-        self.handler.transcribe_frames(
+        handler.transcribe_frames(
             [b'audio_data'], 16000, self.mock_on_complete, self.mock_on_error
         )
 
-        self.audio_file_manager.save_audio.assert_not_called()
-        self.ui_processor.schedule_callback.assert_not_called()
+        audio_file_manager.save_audio.assert_not_called()
+        ui_processor.schedule_callback.assert_not_called()
 
+    @patch('service.transcription_handler.transcribe_audio')
     @patch('service.transcription_handler.process_punctuation')
-    def test_transcribe_frames_cancelled_before_ui_update(self, mock_process_punct):
+    def test_transcribe_frames_cancelled_before_ui_update(
+        self, mock_process_punct, mock_transcribe_audio
+    ):
         """異常系: UI更新前にキャンセル"""
-        self.audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
+        handler, _, _, audio_file_manager, ui_processor = _make_handler()
+        audio_file_manager.save_audio.return_value = '/test/temp/audio.wav'
         mock_process_punct.return_value = "結果"
 
-        def cancel_after_transcribe(*args):
-            self.handler.cancel_processing = True
+        def cancel_after_transcribe(*_):
+            handler.cancel_processing = True
             return "結果"
 
-        self.handler.transcribe_audio_func = Mock(side_effect=cancel_after_transcribe)
+        mock_transcribe_audio.side_effect = cancel_after_transcribe
 
-        self.handler.transcribe_frames(
+        handler.transcribe_frames(
             [b'audio_data'], 16000, self.mock_on_complete, self.mock_on_error
         )
 
-        self.ui_processor.schedule_callback.assert_not_called()
+        ui_processor.schedule_callback.assert_not_called()
 
     def test_transcribe_frames_with_exception(self):
         """異常系: 処理中に例外発生"""
-        self.audio_file_manager.save_audio.side_effect = Exception("保存エラー")
+        handler, _, _, audio_file_manager, ui_processor = _make_handler()
+        audio_file_manager.save_audio.side_effect = Exception("保存エラー")
 
-        self.handler.transcribe_frames(
+        handler.transcribe_frames(
             [b'audio_data'], 16000, self.mock_on_complete, self.mock_on_error
         )
 
-        self.ui_processor.schedule_callback.assert_called_once()
-        args = self.ui_processor.schedule_callback.call_args[0]
+        ui_processor.schedule_callback.assert_called_once()
+        args = ui_processor.schedule_callback.call_args[0]
         assert args[0] == self.mock_on_error
 
 
@@ -158,37 +169,42 @@ class TestTranscriptionHandlerHandleAudioFile:
     """TranscriptionHandlerのhandle_audio_file()メソッドのテストクラス"""
 
     def setup_method(self):
-        self.handler, self.config, self.client, self.audio_file_manager, self.ui_processor = _make_handler()
         self.mock_on_complete = Mock()
         self.mock_on_error = Mock()
 
+    @patch('service.transcription_handler.transcribe_audio')
     @patch('service.transcription_handler.process_punctuation')
-    def test_handle_audio_file_success(self, mock_process_punct):
+    def test_handle_audio_file_success(self, mock_process_punct, mock_transcribe_audio):
         """正常系: 音声ファイル処理成功"""
-        self.handler.transcribe_audio_func = Mock(return_value="文字起こし結果")
+        handler, config, _, _, _ = _make_handler()
+        mock_transcribe_audio.return_value = "文字起こし結果"
         mock_process_punct.return_value = "処理済み結果"
 
-        self.handler.handle_audio_file('/test/audio.wav', self.mock_on_complete, self.mock_on_error)
+        handler.handle_audio_file('/test/audio.wav', self.mock_on_complete, self.mock_on_error)
 
-        self.handler.transcribe_audio_func.assert_called_once_with(
-            '/test/audio.wav', self.config, self.client
+        mock_transcribe_audio.assert_called_once_with(
+            '/test/audio.wav', config, handler.client
         )
         mock_process_punct.assert_called_once_with("文字起こし結果", False)
         self.mock_on_complete.assert_called_once_with("処理済み結果")
 
-    def test_handle_audio_file_transcription_fails(self):
+    @patch('service.transcription_handler.transcribe_audio')
+    def test_handle_audio_file_transcription_fails(self, mock_transcribe_audio):
         """異常系: 文字起こし失敗"""
-        self.handler.transcribe_audio_func = Mock(return_value=None)
+        handler, _, _, _, _ = _make_handler()
+        mock_transcribe_audio.return_value = None
 
-        self.handler.handle_audio_file('/test/audio.wav', self.mock_on_complete, self.mock_on_error)
+        handler.handle_audio_file('/test/audio.wav', self.mock_on_complete, self.mock_on_error)
 
         self.mock_on_error.assert_called_once_with('音声ファイルの処理に失敗しました')
 
-    def test_handle_audio_file_with_exception(self):
+    @patch('service.transcription_handler.transcribe_audio')
+    def test_handle_audio_file_with_exception(self, mock_transcribe_audio):
         """異常系: 処理中に例外発生"""
-        self.handler.transcribe_audio_func = Mock(side_effect=Exception("処理エラー"))
+        handler, _, _, _, _ = _make_handler()
+        mock_transcribe_audio.side_effect = Exception("処理エラー")
 
-        self.handler.handle_audio_file('/test/audio.wav', self.mock_on_complete, self.mock_on_error)
+        handler.handle_audio_file('/test/audio.wav', self.mock_on_complete, self.mock_on_error)
 
         self.mock_on_error.assert_called_once_with('処理エラー')
 

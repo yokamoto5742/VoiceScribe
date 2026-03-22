@@ -1,5 +1,7 @@
 import configparser
 
+import pytest
+
 from utils.app_config import AppConfig
 
 
@@ -16,3 +18,11 @@ def dict_to_config(config_dict: dict) -> configparser.ConfigParser:
 def dict_to_app_config(config_dict: dict) -> AppConfig:
     """辞書をAppConfigオブジェクトに変換する"""
     return AppConfig(dict_to_config(config_dict))
+
+
+@pytest.fixture
+def make_app_config():
+    """辞書からAppConfigを生成するファクトリfixture"""
+    def _factory(config_dict: dict) -> AppConfig:
+        return dict_to_app_config(config_dict)
+    return _factory

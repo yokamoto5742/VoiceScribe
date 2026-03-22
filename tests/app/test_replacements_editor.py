@@ -7,6 +7,21 @@ import pytest
 from app.replacements_editor import ReplacementsEditor
 from tests.conftest import dict_to_app_config
 
+# patch_ttk_widgets を全テストに自動適用
+pytestmark = pytest.mark.usefixtures("patch_ttk_widgets")
+
+_DEFAULT_CONFIG = {
+    'PATHS': {
+        'replacements_file': 'C:/test/replacements.txt'
+    },
+    'EDITOR': {
+        'width': '500',
+        'height': '800',
+        'font_name': 'MS Gothic',
+        'font_size': '12'
+    }
+}
+
 
 def create_mock_text_widget():
     """辞書のように動作するMockTextWidgetを作成するヘルパー関数"""
@@ -17,27 +32,9 @@ def create_mock_text_widget():
 class TestReplacementsEditorInit:
     """ReplacementsEditor初期化のテストクラス"""
 
-    @pytest.fixture(autouse=True)
-    def patch_ttk_widgets(self):
-        with patch('app.replacements_editor.ttk.Button'), \
-             patch('app.replacements_editor.ttk.Frame'), \
-             patch('app.replacements_editor.ttk.Scrollbar'):
-            yield
-
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_parent = Mock(spec=tk.Tk)
-        self.mock_config = {
-            'PATHS': {
-                'replacements_file': 'C:/test/replacements.txt'
-            },
-            'EDITOR': {
-                'width': '500',
-                'height': '800',
-                'font_name': 'MS Gothic',
-                'font_size': '12'
-            }
-        }
+        self.mock_config = _DEFAULT_CONFIG
 
     @patch('app.replacements_editor.tk.Toplevel')
     @patch('app.replacements_editor.tk.Text')
@@ -99,27 +96,9 @@ class TestReplacementsEditorInit:
 class TestLoadFile:
     """ファイル読み込みのテストクラス"""
 
-    @pytest.fixture(autouse=True)
-    def patch_ttk_widgets(self):
-        with patch('app.replacements_editor.ttk.Button'), \
-             patch('app.replacements_editor.ttk.Frame'), \
-             patch('app.replacements_editor.ttk.Scrollbar'):
-            yield
-
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_parent = Mock(spec=tk.Tk)
-        self.mock_config = {
-            'PATHS': {
-                'replacements_file': 'C:/test/replacements.txt'
-            },
-            'EDITOR': {
-                'width': '500',
-                'height': '800',
-                'font_name': 'MS Gothic',
-                'font_size': '12'
-            }
-        }
+        self.mock_config = _DEFAULT_CONFIG
 
     @patch('app.replacements_editor.tk.Toplevel')
     @patch('app.replacements_editor.tk.Text')
@@ -247,27 +226,21 @@ class TestLoadFile:
 class TestSaveFile:
     """ファイル保存のテストクラス"""
 
-    @pytest.fixture(autouse=True)
-    def patch_ttk_widgets(self):
-        with patch('app.replacements_editor.ttk.Button'), \
-             patch('app.replacements_editor.ttk.Frame'), \
-             patch('app.replacements_editor.ttk.Scrollbar'):
-            yield
-
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_parent = Mock(spec=tk.Tk)
-        self.mock_config = {
-            'PATHS': {
-                'replacements_file': 'C:/test/replacements.txt'
-            },
-            'EDITOR': {
-                'width': '500',
-                'height': '800',
-                'font_name': 'MS Gothic',
-                'font_size': '12'
-            }
-        }
+        self.mock_config = _DEFAULT_CONFIG
+
+    def _make_editor(self, mock_toplevel, mock_text, config=None, file_content=""):
+        """エディタインスタンスを生成するヘルパー"""
+        mock_window = Mock()
+        mock_toplevel.return_value = mock_window
+        mock_text_widget = create_mock_text_widget()
+        mock_text.return_value = mock_text_widget
+        cfg = dict_to_app_config(config or self.mock_config)
+        with patch('app.replacements_editor.os.path.exists', return_value=True), \
+             patch('builtins.open', mock_open(read_data=file_content)):
+            editor = ReplacementsEditor(self.mock_parent, cfg)
+        return editor, mock_window, mock_text_widget
 
     @patch('app.replacements_editor.tk.Toplevel')
     @patch('app.replacements_editor.tk.Text')
@@ -422,31 +395,155 @@ class TestSaveFile:
             # Assert
             m().write.assert_called_once_with(large_content)
 
+    # --- _copy_to_backup のテスト ---
+
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.shutil.copy2')
+    @patch('app.replacements_editor.messagebox.showinfo')
+    def test_save_file_backup_copied_when_valid(
+        self, mock_showinfo, mock_copy2, mock_exists, mock_text, mock_toplevel
+    ):
+        """正常系: バックアップパスが有効でディレクトリが存在する場合 copy2 が呼ばれる"""
+        # Arrange
+        backup_config = {
+            'PATHS': {
+                'replacements_file': 'C:/test/replacements.txt',
+                'replacements_backup': 'C:/backup/replacements.txt',
+            },
+            'EDITOR': _DEFAULT_CONFIG['EDITOR']
+        }
+        mock_window = Mock()
+        mock_toplevel.return_value = mock_window
+        mock_text_widget = create_mock_text_widget()
+        mock_text_widget.get.return_value = "置換ルール"
+        mock_text.return_value = mock_text_widget
+
+        # os.path.exists: load_file では True、_copy_to_backup のバックアップdir でも True
+        mock_exists.return_value = True
+
+        with patch('builtins.open', mock_open()), \
+             patch('app.replacements_editor.os.makedirs'):
+            # Act
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(backup_config))
+            editor.save_file()
+
+        # Assert: copy2 が正しい引数で呼ばれる
+        mock_copy2.assert_called_once_with(
+            'C:/test/replacements.txt', 'C:/backup/replacements.txt'
+        )
+        mock_showinfo.assert_called_once()
+
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.shutil.copy2')
+    @patch('app.replacements_editor.messagebox.showinfo')
+    def test_save_file_backup_skipped_when_no_backup_path(
+        self, mock_showinfo, mock_copy2, mock_exists, mock_text, mock_toplevel
+    ):
+        """正常系: REPLACEMENTS_BACKUP が未設定の場合はコピーしない"""
+        # Arrange: _DEFAULT_CONFIG に REPLACEMENTS_BACKUP は含まれない
+        mock_window = Mock()
+        mock_toplevel.return_value = mock_window
+        mock_text_widget = create_mock_text_widget()
+        mock_text_widget.get.return_value = "置換ルール"
+        mock_text.return_value = mock_text_widget
+        mock_exists.return_value = True
+
+        with patch('builtins.open', mock_open()), \
+             patch('app.replacements_editor.os.makedirs'):
+            # Act
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
+            editor.save_file()
+
+        # Assert: コピーは行われない
+        mock_copy2.assert_not_called()
+        mock_showinfo.assert_called_once()
+
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.shutil.copy2')
+    @patch('app.replacements_editor.messagebox.showinfo')
+    def test_save_file_backup_skipped_when_backup_dir_missing(
+        self, mock_showinfo, mock_copy2, mock_exists, mock_text, mock_toplevel, caplog
+    ):
+        """正常系: バックアップディレクトリが存在しない場合はコピーをスキップ"""
+        # Arrange
+        caplog.set_level(logging.DEBUG)
+        backup_config = {
+            'PATHS': {
+                'replacements_file': 'C:/test/replacements.txt',
+                'replacements_backup': 'C:/backup/replacements.txt',
+            },
+            'EDITOR': _DEFAULT_CONFIG['EDITOR']
+        }
+        mock_window = Mock()
+        mock_toplevel.return_value = mock_window
+        mock_text_widget = create_mock_text_widget()
+        mock_text_widget.get.return_value = "置換ルール"
+        mock_text.return_value = mock_text_widget
+
+        # load_file は True (ファイル存在)、_copy_to_backup のバックアップdir は False (ディレクトリなし)
+        mock_exists.side_effect = [True, False]
+
+        with patch('builtins.open', mock_open()), \
+             patch('app.replacements_editor.os.makedirs'):
+            # Act
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(backup_config))
+            editor.save_file()
+
+        # Assert: コピーはスキップ、ただし保存は成功
+        mock_copy2.assert_not_called()
+        mock_showinfo.assert_called_once()
+        assert "バックアップ先ディレクトリが見つかりません" in caplog.text
+
+    @patch('app.replacements_editor.tk.Toplevel')
+    @patch('app.replacements_editor.tk.Text')
+    @patch('app.replacements_editor.os.path.exists')
+    @patch('app.replacements_editor.shutil.copy2')
+    @patch('app.replacements_editor.messagebox.showinfo')
+    def test_save_file_backup_failure_does_not_abort_save(
+        self, mock_showinfo, mock_copy2, mock_exists, mock_text, mock_toplevel, caplog
+    ):
+        """正常系: バックアップコピー失敗でも保存は成功扱いになる"""
+        # Arrange
+        caplog.set_level(logging.WARNING)
+        backup_config = {
+            'PATHS': {
+                'replacements_file': 'C:/test/replacements.txt',
+                'replacements_backup': 'C:/backup/replacements.txt',
+            },
+            'EDITOR': _DEFAULT_CONFIG['EDITOR']
+        }
+        mock_window = Mock()
+        mock_toplevel.return_value = mock_window
+        mock_text_widget = create_mock_text_widget()
+        mock_text_widget.get.return_value = "置換ルール"
+        mock_text.return_value = mock_text_widget
+        mock_exists.return_value = True
+        mock_copy2.side_effect = PermissionError("バックアップ書き込み不可")
+
+        with patch('builtins.open', mock_open()), \
+             patch('app.replacements_editor.os.makedirs'):
+            # Act
+            editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(backup_config))
+            editor.save_file()
+
+        # Assert: バックアップ失敗のwarningが出るが、保存自体は成功
+        assert "バックアップへのコピーに失敗しました" in caplog.text
+        mock_showinfo.assert_called_once_with('保存完了', 'ファイルを保存しました')
+        mock_window.destroy.assert_called_once()
+
 
 class TestIntegrationScenarios:
     """統合シナリオテスト"""
 
-    @pytest.fixture(autouse=True)
-    def patch_ttk_widgets(self):
-        with patch('app.replacements_editor.ttk.Button'), \
-             patch('app.replacements_editor.ttk.Frame'), \
-             patch('app.replacements_editor.ttk.Scrollbar'):
-            yield
-
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_parent = Mock(spec=tk.Tk)
-        self.mock_config = {
-            'PATHS': {
-                'replacements_file': 'C:/test/replacements.txt'
-            },
-            'EDITOR': {
-                'width': '500',
-                'height': '800',
-                'font_name': 'MS Gothic',
-                'font_size': '12'
-            }
-        }
+        self.mock_config = _DEFAULT_CONFIG
 
     @patch('app.replacements_editor.tk.Toplevel')
     @patch('app.replacements_editor.tk.Text')
@@ -528,27 +625,9 @@ class TestIntegrationScenarios:
 class TestEdgeCases:
     """エッジケーステスト"""
 
-    @pytest.fixture(autouse=True)
-    def patch_ttk_widgets(self):
-        with patch('app.replacements_editor.ttk.Button'), \
-             patch('app.replacements_editor.ttk.Frame'), \
-             patch('app.replacements_editor.ttk.Scrollbar'):
-            yield
-
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_parent = Mock(spec=tk.Tk)
-        self.mock_config = {
-            'PATHS': {
-                'replacements_file': 'C:/test/replacements.txt'
-            },
-            'EDITOR': {
-                'width': '500',
-                'height': '800',
-                'font_name': 'MS Gothic',
-                'font_size': '12'
-            }
-        }
+        self.mock_config = _DEFAULT_CONFIG
 
     @patch('app.replacements_editor.tk.Toplevel')
     @patch('app.replacements_editor.tk.Text')
@@ -623,27 +702,9 @@ class TestEdgeCases:
 class TestErrorHandling:
     """エラーハンドリングの詳細テスト"""
 
-    @pytest.fixture(autouse=True)
-    def patch_ttk_widgets(self):
-        with patch('app.replacements_editor.ttk.Button'), \
-             patch('app.replacements_editor.ttk.Frame'), \
-             patch('app.replacements_editor.ttk.Scrollbar'):
-            yield
-
     def setup_method(self):
-        """各テストメソッドの前に実行される設定"""
         self.mock_parent = Mock(spec=tk.Tk)
-        self.mock_config = {
-            'PATHS': {
-                'replacements_file': 'C:/test/replacements.txt'
-            },
-            'EDITOR': {
-                'width': '500',
-                'height': '800',
-                'font_name': 'MS Gothic',
-                'font_size': '12'
-            }
-        }
+        self.mock_config = _DEFAULT_CONFIG
 
     @patch('app.replacements_editor.tk.Toplevel')
     @patch('app.replacements_editor.tk.Text')

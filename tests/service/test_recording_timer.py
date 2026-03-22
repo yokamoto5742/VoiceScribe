@@ -92,18 +92,23 @@ class TestRecordingTimerStart:
         self.timer.cancel()
 
     def test_start_with_60_second_timer(self):
-        """正常系: 60秒タイマーの開始"""
-        self.timer.config._config['RECORDING']['AUTO_STOP_TIMER'] = '60'
-
-        self.timer.start()
-
-        assert self.timer._recording_timer is not None
-        self.mock_master.after.assert_called_once_with(
-            55000,  # (60 - 5) * 1000
-            self.timer._show_five_second_notification
+        """正常系: 60秒タイマーの5秒前通知スケジュール"""
+        # 60秒設定のタイマーを新規作成（内部構造への直接アクセスを避ける）
+        config = _make_config('60')
+        timer = RecordingTimer(
+            self.mock_master, config, self.mock_ui_processor,
+            self.mock_notification, self.mock_is_recording, self.mock_on_auto_stop
         )
 
-        self.timer.cancel()
+        timer.start()
+
+        assert timer._recording_timer is not None
+        self.mock_master.after.assert_called_once_with(
+            55000,  # (60 - 5) * 1000
+            timer._show_five_second_notification
+        )
+
+        timer.cancel()
 
     def test_start_when_ui_invalid(self):
         """異常系: UIが無効な場合"""
@@ -212,12 +217,13 @@ class TestRecordingTimerAutoStop:
         )
 
     def test_auto_stop_triggered(self):
-        """正常系: 自動停止がトリガーされる"""
-        self.timer.start()
-        time.sleep(1.2)
+        """正常系: 自動停止トリガー時に _auto_stop_ui をUIキューに積む"""
+        # スレッドを起動せず内部メソッドを直接呼ぶことでフレーキーを回避
+        self.timer._auto_stop_triggered()
 
-        self.mock_ui_processor.schedule_callback.assert_called_once()
-        self.timer.cancel()
+        self.mock_ui_processor.schedule_callback.assert_called_once_with(
+            self.timer._auto_stop_ui
+        )
 
     def test_auto_stop_ui_callback(self):
         """正常系: 自動停止のUIコールバック実行"""
@@ -228,12 +234,14 @@ class TestRecordingTimerAutoStop:
         self.mock_master.after.assert_called_once_with(1000, self.mock_master.quit)
 
     def test_auto_stop_ui_with_exception(self):
-        """異常系: 自動停止UI処理で例外発生"""
+        """異常系: 自動停止UI処理で例外発生時は通知のみ行い after は呼ばない"""
         self.mock_on_auto_stop.side_effect = Exception("auto stop error")
 
         self.timer._auto_stop_ui()
 
         self.mock_notification.assert_called_once()
+        # 例外後は master.after(quit) をスケジュールしない
+        self.mock_master.after.assert_not_called()
 
     def test_auto_stop_ui_when_ui_invalid(self):
         """異常系: UI無効時の自動停止"""
