@@ -206,7 +206,7 @@ class TestAudioFileManagerCleanup:
     def test_cleanup_removes_old_files(self, mock_datetime, mock_remove, mock_getmtime, mock_glob):
         """正常系: 古いファイルが削除される"""
         from datetime import datetime as real_datetime, timedelta
-        now = real_datetime(2024, 1, 1, 12, 0, 0)
+        now = real_datetime(2024, 1, 1, 12)
         mock_datetime.now.return_value = now
         mock_datetime.fromtimestamp.return_value = now - timedelta(minutes=300)
 
@@ -224,7 +224,7 @@ class TestAudioFileManagerCleanup:
     def test_cleanup_keeps_recent_files(self, mock_datetime, mock_remove, mock_getmtime, mock_glob):
         """正常系: 新しいファイルは削除されない"""
         from datetime import datetime as real_datetime, timedelta
-        now = real_datetime(2024, 1, 1, 12, 0, 0)
+        now = real_datetime(2024, 1, 1, 12)
         mock_datetime.now.return_value = now
         mock_datetime.fromtimestamp.return_value = now - timedelta(minutes=10)
 

@@ -39,7 +39,7 @@ class TestTranscriptionHandlerInit:
 
     def test_init_with_punctuation_false(self):
         """正常系: 句読点処理なしで初期化"""
-        handler, *_ = _make_handler(use_punctuation=False)
+        handler, *_ = _make_handler()
 
         assert handler.use_punctuation is False
 

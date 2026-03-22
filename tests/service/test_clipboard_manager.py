@@ -104,7 +104,7 @@ class TestClipboardManagerCopyAndPaste:
         mock_copy.return_value = True
         mock_paste.return_value = True
 
-        manager = _make_manager({"テスト": "試験"}, paste_delay=0.1)
+        manager = _make_manager({"テスト": "試験"})
         manager._paste_in_thread("テスト文字列")
 
         mock_replace.assert_called_once_with("テスト文字列", {"テスト": "試験"})

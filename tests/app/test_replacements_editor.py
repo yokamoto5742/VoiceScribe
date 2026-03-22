@@ -348,7 +348,7 @@ class TestSaveFile:
         mock_exists.return_value = True
         mock_dirname.return_value = 'C:/test'
 
-        with patch('builtins.open', side_effect=[mock_open(read_data="")(), PermissionError("Permission denied")]), \
+        with patch('builtins.open', side_effect=[mock_open()(), PermissionError("Permission denied")]), \
              patch('app.replacements_editor.os.makedirs'):
             # Act
             editor = ReplacementsEditor(self.mock_parent, dict_to_app_config(self.mock_config))
@@ -692,7 +692,7 @@ class TestErrorHandling:
         mock_dirname.return_value = 'C:/test'
 
         # 初期化時は成功、ディレクトリ作成時は失敗
-        with patch('builtins.open', mock_open(read_data="")):
+        with patch('builtins.open', mock_open()):
             mock_exists.return_value = True
             mock_makedirs.side_effect = PermissionError("Cannot create directory")
 

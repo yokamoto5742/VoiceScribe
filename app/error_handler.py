@@ -8,7 +8,7 @@ from tkinter import messagebox
 def show_error_dialog(message: str, title: str = 'エラー') -> None:
     try:
         try:
-            root = tk._default_root  # type: ignore
+            root = tk.Misc._default_root  # type: ignore[attr-defined]
             if root:
                 root.withdraw()
         except Exception:
@@ -25,7 +25,7 @@ def show_error_dialog(message: str, title: str = 'エラー') -> None:
 
 
 def write_error_report(version: str, exc: Exception) -> None:
-    """エラーレポートを error_log.txt に書き出し、開く。"""
+    """エラーレポートを出力する"""
     try:
         report = (
             f'=== VoiceScribe エラーレポート ===\n'

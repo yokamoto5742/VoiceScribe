@@ -18,7 +18,7 @@ class TestRecordingTimerInit:
         self.mock_master = Mock(spec=tk.Tk)
         self.mock_master.winfo_exists.return_value = True
 
-        self.mock_config = _make_config('60')
+        self.mock_config = _make_config()
 
         self.mock_ui_processor = Mock(spec=UIQueueProcessor)
         self.mock_ui_processor.is_ui_valid.return_value = True

@@ -1,12 +1,12 @@
 ============================================================
 テストファイル一覧: tests
 パス: C:\Users\yokam\PycharmProjects\VoiceScribe\tests
-生成日時: 2026-03-21 13:10:39
+生成日時: 2026-03-22 08:49:26
 ============================================================
 
 └── tests
     ├── app
-    │   ├── test_notification.py
+    │   ├── test_notification_manager.py
     │   ├── test_replacements_editor.py
     │   └── test_ui_queue_processor.py
     ├── external_service
