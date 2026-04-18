@@ -63,6 +63,17 @@
     "ask": []
   },
   "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -File .claude/hooks/permission-request-notification.ps1"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "AskUserQuestion",
@@ -81,17 +92,6 @@
           {
             "type": "command",
             "command": "powershell -Command \"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('タスクが完了しました', 'Claude Code', 'OK', 'Information')\""
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cmd /c start /b powershell -NoProfile -Command \"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('セッションが終了しました', 'Claude Code', 'OK', 'Information')\""
           }
         ]
       }
