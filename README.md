@@ -1,21 +1,81 @@
 # VoiceScribe
 
-ElevenLabs API を使用して音声をテキストに変換するデスクトップアプリケーションです。
-ショートカットキーで簡単に操作でき、自動テキスト貼り付けをサポートしています。
+**日本語の専門用語に強い、Windows 用ショートカット型音声入力ツール**
 
-## 主な機能
+Pause キー 1 回で録音開始/終了 、文字起こし結果をアクティブウィンドウへ直接貼り付け。1 日 200 回以上の短文作成が可能な設計です。
 
-- **リアルタイム音声認識**: ElevenLabs Speech-to-Text API による自動テキスト変換
-- **キーボードショートカット**: Pause キーで録音開始/停止、F8 で再ロード、F9 で句読点切り替え
-- **自動テキスト貼り付け**: Windows SendInput API による他のアプリケーションへの安全な貼り付け
+---
 
-## システム要件
+## なぜこのツールが生まれたか
 
-- Windows 11 以上
-- Python 3.12 以上
-- オーディオ入力デバイス (マイク)
+既存の音声入力ツールには、以下のような不満がありました。
 
-## インストール
+- ❌ **Windows 標準の音声入力や Whisper では、日本語の医療/専門用語の認識精度が不足**
+- ❌ **他ツールは、ファイル名変更欄などに貼り付けられない**貼り付け先の制約がある
+- ❌ **クラウド型ツールではネット瞬断で音声が消失**し、再発声が必要になる場合がある
+
+VoiceScribe はこれらを次の組み合わせで解決します。
+
+- **ElevenLabs Speech-to-Text API** による日本語認識精度
+- **Win32 SendInput** による貼り付け先非依存の入力
+- **ローカル WAV 保存** による通信瞬断への耐性（F8 キーで再送可能）
+
+
+---
+
+## 想定ユーザーと使用シーン
+
+医療従事者をはじめとするナレッジワーカーが、以下の用途で使うことを想定しています。
+
+- 業務メールの作成
+- 生成 AI へのプロンプト入力
+- 議事録の作成
+- ファイル名欄、チャット欄など **「コピペが使いにくい場所」への直接入力**
+
+**想定ワークフロー:** 1 日 200 回 × 1 回 10 秒以下の **短文作成** 型。長文ディクテーションではなく、思いついたときにショートカット 1 回で素早く入力する用途に最適化しています。また、60秒以上の中程度の長さの音声入力にも対応できます。
+
+---
+
+## 特徴
+
+1. **ショートカット一発で即録音** — Pause キーを押した瞬間にキャプチャ開始。アプリ切替不要
+2. **貼り付け先を選ばない** — Win32 SendInput 採用で、ファイル名変更欄・ダイアログ等にも入力可能
+3. **ネット瞬断に強い** — 音声はローカルに WAV 保存されるため、通信失敗時も F8 キーで再送可能
+4. **専門用語辞書による後処理置換** — `data/replacements.txt` に追記するだけで誤認識を恒久修正
+5. **日本語数字・全角英数字の自動正規化** — ElevenLabs 特有の「漢数字出力」「全角英字」を半角へ自動変換
+
+---
+
+## 置換辞書のリアルな例
+
+`data/replacements.txt` に CSV 形式で登録します。実際の運用例を抜粋します。
+
+```csv
+# 医療系の同音異義語を補正
+小児体,硝子体
+焼死体,硝子体
+
+# ElevenLabs 特有: 漢数字をアラビア数字へ
+二千二十六,2026
+一,1
+
+# 全角英数字を半角へ
+Ａ,A
+１,1
+
+# 「1部」→「一部」などの誤字を補正
+1部,一部
+1旦,一旦
+
+# 不要な疑問符を句点に
+?,。
+```
+
+辞書はアプリ内の置換エディタから直接編集できます。
+
+---
+
+## クイックスタート
 
 ### 1. リポジトリをクローン
 
@@ -24,283 +84,178 @@ git clone https://github.com/your-repo/VoiceScribe.git
 cd VoiceScribe
 ```
 
-### 2. 仮想環境を作成と有効化
+### 2. 仮想環境の作成と依存パッケージのインストール
+
+事前に [uv](https://docs.astral.sh/uv/getting-started/installation/) のインストールが必要です。
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
+# 仮想環境の作成とパッケージのインストールを一度に行う
+uv sync
 ```
 
-### 3. 依存パッケージをインストール
+仮想環境を有効化する：
 
 ```bash
-pip install -r requirements.txt
+# Windows (Command Prompt)
+.venv\Scripts\activate.bat
+
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+
+# Mac / Linux
+source .venv/bin/activate
 ```
 
-### 4. ElevenLabs API キーを設定
+### 3. ElevenLabs API キーを設定
 
-プロジェクトルートに `.env` ファイルを作成します
+プロジェクトルートに `.env` を作成します。
 
-```bash
+```
 ELEVENLABS_API_KEY=your_api_key_here
 ```
 
-[ElevenLabs](https://elevenlabs.io) から API キーを取得できます
+API キーは [ElevenLabs](https://elevenlabs.io) から取得できます。
 
-### 5. アプリケーション実行
+### 4. 起動
 
 ```bash
 python main.py
 ```
 
-アプリケーションはデフォルトで最小化状態で起動します
+起動後、Pause キーを押して録音 → 話す → Pause キーで停止すると、アクティブウィンドウへテキストが貼り付けられます。
 
-## 使用方法
+---
+
+## 使い方
 
 ### キーボードショートカット
 
-| キー | 機能 |
-|------|------|
-| Pause | 録音開始/停止 |
-| Esc | アプリケーション終了 |
-| F8 | 最新の音声ファイルを再ロード/再変換 |
-| F9 | 句読点機能の有効/無効を切り替え |
+| キー | 機能                          |
+|------|-----------------------------|
+| Pause | 録音開始 / 停止                   |
+| Esc | アプリケーション終了                  |
+| **F8** | **直前の音声を再変換（ネット瞬断時の再送に使用）** |
+| F9 | 句読点機能の有効 / 無効を切り替え          |
 
-### 基本的な使用フロー
+### 基本フロー
 
-1. Pause キーを押して音声録音を開始
-2. マイクに向かって話す (最大 60 秒間自動で終了)
-3. Pause キーを押して録音を終了
-4. テキストが自動的に他のアプリケーションに貼り付けられます
+1. Pause キーを押して録音開始
+2. マイクに向かって話す（デフォルトは最大 60 秒で自動停止）
+3. Pause キーで停止、もしくは無発声で自動終了
+4. テキストが自動的にアクティブウィンドウへ貼り付けられる
 
-### テキスト置換機能
+ネット切断などで変換に失敗した場合は、**F8 キーで直前の音声を再送信** できます。音声データはローカルに保存されているため、発声し直す必要がありません。
 
-置換ルールは `data/replacements.txt` に定義されます (カンマ区切り形式)。アプリケーション内の置換エディターから直接編集することも可能です。
+---
 
-**ファイル形式例:**
+## 設計上の知見（開発者向け）
 
-```
-ありがとうございます,ありがとうございます
-こんにちわ,こんにちは
-```
+### UIQueueProcessor の導入経緯
 
-置換ルールは記号や特殊文字にも対応しており、置換エディターから編集できます。
+初期実装ではバックグラウンドスレッドから Tkinter を直接更新していたため、**原因不明のフリーズや突然終了が頻発** していました。API 処理側を疑って試行錯誤しましたが改善せず、最終的にすべての UI 更新を `UIQueueProcessor.schedule_callback()` 経由に統一したところ、安定性が劇的に改善しました。
+
+Tkinter + バックグラウンドスレッド構成のアプリを作る方への落とし穴共有として記録しておきます。
+
+### レイヤー構成
+
+- **`app/`** — Tkinter UI レイヤー。`VoiceInputManager` がメインウィンドウを保持。全 UI 更新は `UIQueueProcessor` 経由
+- **`service/`** — ビジネスロジック。`RecordingLifecycle` が `AudioRecorder` → `AudioFileManager` → `TranscriptionHandler` → `TextTransformer` → `ClipboardManager` → `paste_backend` のパイプラインを統合
+- **`external_service/`** — ElevenLabs API の薄いラッパー
+- **`utils/`** — 設定 (`AppConfig`)、ロギング、クラッシュログ、シグナル設定
+
+---
 
 ## 設定
 
 ### 環境変数 (.env)
 
-プロジェクトルートに `.env` ファイルを作成し、ElevenLabs API キーを設定します
-
 ```
 ELEVENLABS_API_KEY=your_api_key_here
 ```
 
-### 設定ファイル (utils/config.ini)
+### 主要な設定 (utils/config.ini)
 
-主要な設定セクション:
+| セクション | 用途 |
+|-----------|------|
+| `[ELEVENLABS]` | モデル (`scribe_v2`)、言語 (`jpn`) |
+| `[KEYS]` | ショートカット割り当て |
+| `[RECORDING]` | 自動停止タイマー（デフォルト 60 秒） |
+| `[CLIPBOARD]` | SendInput / pyperclip フォールバック切り替え |
 
-| セクション | 説明 |
-|----------|-----|
-| `[AUDIO]` | サンプリングレート (16000 Hz)、チャンネル (1ch)、チャンク |
-| `[ELEVENLABS]` | モデル (`scribe_v2`)、言語 (`jpn`)、オーディオイベントタグ |
-| `[FORMATTING]` | 句読点機能 (`use_punctuation`) と句点設定 (`use_comma`) |
-| `[KEYS]` | キーボードショートカット割り当て (pause, esc, f8, f9) |
-| `[RECORDING]` | 自動停止タイマー (デフォルト 60 秒) |
-| `[CLIPBOARD]` | テキスト貼り付けの遅延設定と SendInput/pyperclip フォールバック |
-| `[PATHS]` | 置換ファイル、バックアップ先、一時ディレクトリ |
-| `[LOGGING]` | ログレベル、保持期間、デバッグモード |
-| `[OPTIONS]` | 起動時の最小化設定 |
-| `[WINDOW]` | ウィンドウサイズ |
-| `[EDITOR]` | 置換エディターのフォントサイズ、寸法 |
+その他のセクションは `config.ini` 内のコメントを参照してください。
 
-## 開発者向け情報
+---
 
-### テストの実行
+## 開発者向け
+
+### テスト
 
 ```bash
-# すべてのテストを実行
 python -m pytest tests/ -v --tb=short
-
-# カバレッジレポート付き
-python -m pytest tests/ -v --tb=short --cov=. --cov-report=html
-
-# 特定のテストファイル
-python -m pytest tests/test_audio_recorder.py -v
+python -m pytest tests/ -v --tb=short --cov=app --cov-report=html
 ```
 
 ### 型チェック
 
 ```bash
-# ソースコードの型チェック
 pyright app service utils
 ```
 
-### 実行可能ファイルのビルド
+### 実行ファイルのビルド
 
 ```bash
 python build.py
 ```
 
-実行可能ファイルは `dist/VoiceScribe.exe` に出力されます。
+成果物は `dist/VoiceScribe.exe` に出力されます。
 
-### プロジェクト構造
+---
 
-```
-VoiceScribe/
-├── app/                          # Tkinter UI レイヤー
-│   ├── main_window.py            # メインウィンドウ
-│   ├── ui_components.py          # UI コンポーネント
-│   ├── ui_queue_processor.py     # スレッドセーフ UI キュー
-│   ├── notification_manager.py   # 通知表示
-│   ├── replacements_editor.py    # テキスト置換エディタ
-│   ├── error_handler.py          # エラーダイアログとレポート
-│   └── application.py            # アプリケーション初期化
-│
-├── service/                      # ビジネスロジック層
-│   ├── recording_lifecycle.py    # 記録→変換→貼り付けパイプライン
-│   ├── audio_recorder.py         # 音声キャプチャ
-│   ├── audio_file_manager.py     # WAV ファイル管理
-│   ├── transcription_handler.py  # 非同期文字起こし処理
-│   ├── text_transformer.py       # テキスト置換・句読点処理
-│   ├── clipboard_manager.py      # クリップボード操作
-│   ├── keyboard_handler.py       # グローバルキーボードショートカット
-│   ├── paste_backend.py          # テキスト貼り付けバックエンド
-│   └── recording_timer.py        # 自動停止タイマー
-│
-├── external_service/             # ElevenLabs API ラッパー層
-│   └── elevenlabs_api.py         # Speech-to-Text API クライアント
-│
-├── utils/                        # 設定・ユーティリティ層
-│   ├── app_config.py             # 設定クラス
-│   ├── config_manager.py         # 設定管理
-│   ├── env_loader.py             # 環境変数読み込み
-│   ├── process_setup.py          # クラッシュログ・シグナル設定
-│   ├── log_rotation.py           # ログローテーション
-│   └── config.ini                # デフォルト設定
-│
-├── tests/                        # テストスイート
-│   ├── conftest.py               # テスト共通設定
-│   └── (各レイヤーのテスト)
-│
-├── main.py                       # エントリーポイント
-├── build.py                      # PyInstaller ビルドスクリプト
-├── requirements.txt              # 依存パッケージ
-├── .env                          # 環境変数 (Git 除外)
-├── CLAUDE.md                     # 開発指示
-└── README.md                     # このファイル
-```
+## システム要件
 
-### アーキテクチャ
+- Windows 11 以上
+- Python 3.12 以上
+- マイク入力デバイス
+- ElevenLabs の API キー
 
-**レイヤー構成:**
-
-- **`utils/`**: 設定とプロセスセットアップ。`AppConfig` が `ConfigParser` をラップし、型安全なプロパティを公開。`process_setup()` でクラッシュログとシグナルハンドリングを設定
-- **`external_service/`**: ElevenLabs API の薄いラッパー
-- **`service/`**: UI を持たないビジネスロジック。各コンポーネント責務：
-  - `RecordingLifecycle`: 全体のパイプライン統合（`AudioRecorder`、`TranscriptionHandler`、`ClipboardManager`、`AudioFileManager` を管理）
-  - `AudioRecorder`: マイクキャプチャ
-  - `TranscriptionHandler`: ElevenLabs へ送信し、`UIQueueProcessor` 経由で結果を配信
-  - `TextTransformer`: 置換と句読点正規化
-  - `ClipboardManager`: クリップボード操作と貼り付け実行
-  - `KeyboardHandler`: グローバルキーボード登録
-- **`app/`**: Tkinter UI レイヤー
-  - `Application`: 初期化と依存関係の構築
-  - `VoiceInputManager`: メインウィンドウ、`RecordingLifecycle` へ委譲
-  - `ErrorHandler`: エラーダイアログ表示とレポート作成
-
-**データフロー:**
-
-```
-ユーザーのキー入力
-    ↓
-KeyboardHandler
-    ↓
-RecordingLifecycle.toggle_recording()
-    ↓
-AudioRecorder (バックグラウンドスレッド で音声キャプチャ)
-    ↓
-AudioFileManager (WAV ファイル保存)
-    ↓
-TranscriptionHandler (ElevenLabs API へ非同期送信)
-    ↓
-TextTransformer (置換・句読点処理)
-    ↓
-ClipboardManager (クリップボード操作)
-    ↓
-paste_backend (Win32 SendInput または pyperclip で貼り付け)
-```
-
-**スレッド設計:**
-
-- UI の更新は必ず `UIQueueProcessor.schedule_callback()` 経由で実行
-- バックグラウンドスレッドから Tkinter を直接呼び出さない
-- `RecordingLifecycle` が `_check_process_thread` で文字起こしの完了をポーリング
-
-**エラーハンドリング:**
-
-- 予期しないエラーは `show_error_dialog()` でユーザーに通知
-- エラーレポートは `write_error_report()` で `error_log.txt` に記録され、自動で開かれる
-- クラッシュログは `crash_log.txt` に記録され、`faulthandler` で詳細情報を取得
-- シグナルとプロセス終了はフックで適切にハンドリング
-
-## 主要な依存パッケージ
-
-| パッケージ | バージョン | 用途 |
-|-----------|----------|------|
-| elevenlabs | 2.25.0 | Speech-to-Text API クライアント |
-| PyAudio | 0.2.14 | 音声録音・キャプチャ |
-| keyboard | 0.13.5 | グローバルキーボードショートカット |
-| pyperclip | 1.9.0 | クリップボード操作 |
-| python-dotenv | 1.1.1 | 環境変数読み込み |
-| pywin32-ctypes | 0.2.3 | Windows API インターフェース |
-| pytest | 8.4.1 | テスト実行 |
-| pyright | 1.1.407 | 型チェック |
-| pyinstaller | 6.14.2 | 実行可能ファイル生成 |
-
-詳細は `requirements.txt` を参照してください
+---
 
 ## トラブルシューティング
 
 ### API キーエラーが表示される
 
-`.env` ファイルをプロジェクトルートに配置し、`ELEVENLABS_API_KEY` が正しく設定されていることを確認してください
-
-```bash
-type .env
-```
-
-**解決策:**
-
-- [ElevenLabs](https://elevenlabs.io) から API キーを確認
-- `.env` ファイルが Git に含まれていないことを確認 (`.gitignore` で除外)
+- `.env` がプロジェクトルートに存在し、`ELEVENLABS_API_KEY` が正しく設定されているか確認
+- [ElevenLabs](https://elevenlabs.io) ダッシュボードでキーが有効か確認
 
 ### 音声が録音されない
 
-**チェックリスト:**
-
 1. Windows の設定でマイクが有効か確認
-2. 別のアプリケーションがマイクを占有していないか確認
-3. PyAudio が正しくインストール済みか確認: `python -c "import pyaudio; print('OK')"`
+2. 他のアプリがマイクを占有していないか確認
+3. PyAudio の動作確認: `python -c "import pyaudio; print('OK')"`
 
 ### テキスト貼り付けが機能しない
 
-1. `utils/config.ini` で `use_sendinput = True` に設定されていることを確認
-2. アプリケーションを管理者権限で実行を試す
-3. テスト対象アプリケーションが標準的なテキスト入力に対応しているか確認 (例: メモ帳、Word)
+1. `utils/config.ini` で `use_sendinput = True` を確認
+2. 貼り付け先アプリが標準的なテキスト入力に対応しているか確認
 
-### エラーレポートが表示される場合
+### ネット瞬断で変換に失敗した
 
-エラーが発生した場合、`error_log.txt` が自動で作成・表示されます。このファイルに詳細なスタックトレースが記録されているため、デバッグの際に参照できます。
+F8 キーを押すと、直前の音声を再変換します。録音し直す必要はありません。
+
+### 予期しないエラーが発生した
+
+`error_log.txt` が自動生成・表示されます。スタックトレースが記録されているため、デバッグに利用できます。
+
+---
 
 ## バージョン情報
 
 - **現在のバージョン**: 2.0.2
-- **最終更新日**: 2026年03月22日
+- **最終更新日**: 2026 年 04 月 19 日
 
 ## ライセンス
 
-このプロジェクトのライセンス情報については、 [LICENSE](docs/LICENSE) を参照してください。
+ライセンス情報は [LICENSE](docs/LICENSE) を参照してください。
 
 ## 更新履歴
 
