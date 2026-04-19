@@ -8,6 +8,7 @@ dependencies = [
     "PyAudio==0.2.14",
     "pyperclip==1.9.0",
     "python-dotenv==1.1.1",
+    "pywin32-ctypes==0.2.3",
 ]
 
 [dependency-groups]
