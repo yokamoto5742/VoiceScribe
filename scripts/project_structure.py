@@ -14,7 +14,7 @@ class ProjectStructureGenerator:
             '.git', '.gitignore', '.hg', '.svn',
             '.DS_Store', 'Thumbs.db', 'desktop.ini','pytest.ini','*.lock',
             'node_modules', '.npm', 'package-lock.json',
-            '*.log', '*.tmp', '.cache', 'CLAUDE.md','crash_log.txt',
+            '*.log', '*.tmp', '.cache', 'CLAUDE.md','crash_log.txt','__init__.py',
         }
 
         self.important_files = {
